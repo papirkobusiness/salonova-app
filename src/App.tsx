@@ -1,3 +1,4 @@
+import LandingPage from './LandingPage'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase, configured, type Salon, type Booking, type Service, type Staff, type Conversation } from './lib'
 import { LayoutDashboard, CalendarDays, Inbox, Users, Scissors, Settings, LogOut, Plus, Search, Bell, Menu, X, Check, Clock3, Euro, UserRound, Sparkles, MessageCircle, ArrowUpRight, ChevronRight } from 'lucide-react'
