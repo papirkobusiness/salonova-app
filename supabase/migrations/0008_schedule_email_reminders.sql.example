@@ -1,0 +1,19 @@
+-- Optional scheduler setup after deploying the send-reminders Edge Function.
+-- Store secrets in Supabase Vault first:
+--   project_url       = https://YOUR_PROJECT_REF.supabase.co
+--   service_role_key  = your Supabase service_role key (never put it in the app)
+-- Then run this SQL once. Requires pg_cron, pg_net and Vault extensions.
+select cron.schedule(
+  'salonova-email-reminders-every-15-minutes',
+  '*/15 * * * *',
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url') || '/functions/v1/send-reminders',
+    headers := jsonb_build_object(
+      'Content-Type','application/json',
+      'Authorization','Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key')
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
