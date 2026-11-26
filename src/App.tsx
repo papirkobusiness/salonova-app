@@ -427,9 +427,18 @@ function PublicBooking({slug}:{slug:string}){
  </div>
 }
 
-export default function App(){
- const path=window.location.pathname
- const match=path.match(/^\/rezervacija\/([^/]+)\/?$/)
- if(match)return <PublicBooking slug={decodeURIComponent(match[1])}/>
- return <DashboardApp/>
+export default function App() {
+  const path = window.location.pathname
+
+  const match = path.match(/^\/rezervacija\/([^/]+)\/?$/)
+
+  if (match) {
+    return <PublicBooking slug={decodeURIComponent(match[1])} />
+  }
+
+  if (path === '/vlasnik' || path.startsWith('/vlasnik/')) {
+    return <DashboardApp />
+  }
+
+  return <LandingPage />
 }
