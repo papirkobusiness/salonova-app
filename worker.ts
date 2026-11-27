@@ -123,6 +123,7 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       if(selectedDate.getTime()<new Date(currentYear,now.getMonth(),now.getDate(),12).getTime())reply="Taj datum je već prošao 😊 Možete li odabrati neki budući datum?";
       else if(dateIsClosed)reply=`${d}. ${m}. ${y}. je ${actual}, a salon taj dan ne radi. 😊 Možete li odabrati drugi datum?`;
       else if(dayName&&dayName!==actual)reply=`Samo da provjerimo 😊 ${d}. ${m}. ${y}. je ${actual}, a ne ${dayName}. Želite li taj datum?`;
+      else if((/(?:^|\b)[0-3]?\d[.\/-][01]?\d(?:[.\/-]\d{2,4})?(?:\b|$)/.test(latestUser)||/\b[0-3]?\d\s+(?:sijecn|veljac|ozuj|trav|svib|lip|srpn|kolovoz|ruj|listopad|studen|prosin)/i.test(normalize(latestUser)))&&!/(?:\b[01]?\d|2[0-3]):[0-5]\d|\b(?:[01]?\d|2[0-3])\s*(?:h|sati)\b/i.test(latestUser))reply=`Odlično, ${d}. ${m}. ${y}. je ${actual}. Koje vrijeme biste željeli? 😊`;
       else if(/\b(?:to je|je|pada na) (?:nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\b/i.test(reply))reply=`Odlično 😊 ${d}. ${m}. ${y}. je ${actual}. Želite li taj datum?`;
     }else if(dayName&&!dateParts){
       reply="Možete li mi napisati točan datum (npr. 5.12.)? Tako ćemo izbjeći zabunu oko dana. 😊";
