@@ -156,11 +156,14 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       }
     }
     // This test chat cannot create appointments: block any AI wording that implies a real booking.
-    if(/\b(?:zabilježen|zabilježena|zabilježeno|potvrđen|potvrđena|potvrđeno|rezerviran|rezervirana|rezervirano)\b|\bvidimo se\b/i.test(reply)){
-      reply="Hvala vam! 😊 Sve podatke imamo u razgovoru, ali termin još nije službeno rezerviran. Rezervaciju možete dovršiti putem stranice salona.";
+    // Block only affirmative claims that a booking was made. Do not overwrite truthful
+    // negative statements such as "termin nije potvrđen" or holiday warnings.
+    const claimsBookingMade=/\b(?:termin|rezervacija)\s+(?:je\s+)?(?:uspješno\s+)?(?:zabilježen|zabilježena|zabilježeno|potvrđen|potvrđena|potvrđeno|rezerviran|rezervirana|rezervirano)\b|\b(?:uspješno\s+)?rezervirali\s+ste\b|\bvidimo\s+se\s+(?:tada|u\s+\d)/i;
+    if(claimsBookingMade.test(reply)){
+      reply="Hvala vam! 😊 Termin još nije službeno rezerviran jer ovaj razgovor nema mogućnost upisa u kalendar. Rezervaciju možete dovršiti putem stranice salona.";
     }
     // When name and phone are requested, recognize phone digits as contact data, never as a time.
-    const askedForContact=/ime.{0,35}(?:broj|mobitel|kontakt)|(?:broj|mobitel).{0,35}ime/i.test(priorAssistant);
+    const askedForContact=/(?:ime.{0,50}(?:broj|mobitel|kontakt)|(?:broj|mobitel|kontakt).{0,50}ime|ime\s+i\s+broj)/i.test(priorAssistant);
     const phoneMatch=latestUser.match(/(?:\+?385[\s./-]*|0)[0-9\s./()-]{7,16}/);
     if(askedForContact&&phoneMatch){
       const phoneDigits=phoneMatch[0].replace(/\D/g,"");
