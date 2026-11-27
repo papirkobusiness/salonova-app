@@ -104,13 +104,13 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       }
     }
     // Validate requested time against opening hours and selected service duration.
-    const timeMatch=latestUser.match(/(?:^|\\b)([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\s*(?:h|sati)?\\b/i);
+    const timeMatch=latestUser.match(/(?:^|\b)([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:h|sati)?\b/i);
     if(timeMatch){
       const requestedHour=Number(timeMatch[1]),requestedMinute=Number(timeMatch[2]||0);
       const requestedMinutes=requestedHour*60+requestedMinute;
-      const parseClock=(v:any)=>{const m=String(v||"").match(/(\\d{1,2})[:.](\\d{2})/);return m?Number(m[1])*60+Number(m[2]):null};
+      const parseClock=(v:any)=>{const m=String(v||"").match(/(\d{1,2})[:.](\d{2})/);return m?Number(m[1])*60+Number(m[2]):null};
       const opening=parseClock(hours.start),closing=parseClock(hours.end);
-      const chosenService=context.services.find((s:any)=>s.name&&allUserText.includes(String(s.name).toLowerCase()));
+      const normalize=(v:string)=>v.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");\n      const chosenService=context.services.find((s:any)=>s.name&&normalize(userText).includes(normalize(String(s.name))))||context.services.find((s:any)=>/musko|male|barber/i.test(normalize(userText))&&/musko|male/i.test(normalize(String(s.name)))||/zensko|female/i.test(normalize(userText))&&/zensko|female/i.test(normalize(String(s.name)))||/pramen|highlight/i.test(normalize(userText))&&/pramen|highlight/i.test(normalize(String(s.name)));
       const duration=Number(chosenService?.duration_minutes||0);
       if(opening!==null&&closing!==null&&(requestedMinutes<opening||requestedMinutes+duration>closing)){
         const fmt=(m:number)=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
