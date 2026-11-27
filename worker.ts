@@ -116,7 +116,7 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     if(selectedDate){
       const d=selectedDate.getDate(),m=selectedDate.getMonth()+1,y=selectedDate.getFullYear(),actual=weekdays[selectedDate.getDay()];
       if(selectedDate.getTime()<new Date(currentYear,now.getMonth(),now.getDate(),12).getTime()&&selectedDate.getFullYear()===currentYear)reply="Taj datum je već prošao 😊 Možete li odabrati neki budući datum?";
-      else if(dateIsClosed)reply=` ${d}. ${m}. ${y}. je ${actual}, a salon taj dan ne radi. 😊 Možete li odabrati drugi datum?`;
+      else if(dateIsClosed)reply=`${d}. ${m}. ${y}. je ${actual}, a salon taj dan ne radi. 😊 Možete li odabrati drugi datum?`;
       else if(dayName&&dayName!==actual)reply=`Samo da provjerimo 😊 ${d}. ${m}. ${y}. je ${actual}, a ne ${dayName}. Želite li taj datum?`;
       else if(/\b(?:to je|je|pada na) (?:nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\b/i.test(reply))reply=`Odlično 😊 ${d}. ${m}. ${y}. je ${actual}. Želite li taj datum?`;
     }else if(dayName&&!dateParts){
