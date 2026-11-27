@@ -128,7 +128,7 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       reply="Možete li mi napisati točan datum (npr. 5.12.)? Tako ćemo izbjeći zabunu oko dana. 😊";
     }
     // Validate selected time only when date/service details are known enough; time parsing accepts 19, 19:00, 19h.
-    const explicitTime=latestUser.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b/i);
+    const explicitTime=latestUser.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b/i);
     const bareHour=latestUser.trim().match(/^([01]?\d|2[0-3])$/);
     const timeMatch=explicitTime||((bareHour&&/vrijeme|sat|u koliko|koji termin/i.test(priorAssistant))?bareHour:null);
     if(timeMatch&&selectedDate&&!dateIsClosed&&chosenService){
