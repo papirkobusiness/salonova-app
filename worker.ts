@@ -7,8 +7,9 @@ const FALLBACK_MODEL="@cf/google/gemma-4-26b-a4b-it";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 function json(body:any,status=200){return new Response(JSON.stringify(body),{status,headers:{...cors,"Content-Type":"application/json"}})}
 function extractReply(result:any):string {
- const candidates=[result?.response,result?.text,result?.output_text,result?.choices?.[0]?.message?.content,result?.result?.response];
+ const candidates=[result?.response,result?.text,result?.output_text,result?.choices?.[0]?.message?.content,result?.result?.response,result?.result?.text];
  for(const candidate of candidates)if(typeof candidate==="string"&&candidate.trim())return candidate.trim();
+ if(Array.isArray(result?.response))return result.response.map((part:any)=>part?.text||"").join("").trim();
  return "";
 }
 export default {
@@ -55,10 +56,10 @@ KAKO POMOĆI:
 - Ne spominji ograničenja osim kada su relevantna za pitanje (npr. stvarna rezervacija).
 
 Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Zagreb",dateStyle:"full"}).format(new Date())}.`;
-    const input={messages:[{role:"system",content:system},...safeMessages],max_tokens:300,temperature:0.25};
+    const input={messages:[{role:"system",content:system},...safeMessages],max_tokens:300,max_completion_tokens:300,temperature:0.25,reasoning_effort:"low",chat_template_kwargs:{enable_thinking:false}};
     let result:any=null,reply="";
-    try{result=await env.AI.run(MODEL,input);reply=extractReply(result)}catch(_e){reply=""}
-    if(!reply){try{result=await env.AI.run(FALLBACK_MODEL,input);reply=extractReply(result)}catch(_e){reply=""}}
+    try{result=await env.AI.run(MODEL,input);reply=extractReply(result);if(!reply)console.error("Salonova AI primary returned empty response",JSON.stringify(result).slice(0,1200))}catch(e){console.error("Salonova AI primary failed",e);reply=""}
+    if(!reply){try{result=await env.AI.run(FALLBACK_MODEL,input);reply=extractReply(result);if(!reply)console.error("Salonova AI fallback returned empty response",JSON.stringify(result).slice(0,1200))}catch(e){console.error("Salonova AI fallback failed",e);reply=""}}
     if(!reply)return json({error:"Recepcija se trenutačno ne može povezati s AI-jem. Pokušajte ponovno za trenutak."},502);
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
