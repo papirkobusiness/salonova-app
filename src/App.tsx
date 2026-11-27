@@ -202,7 +202,7 @@ function ReceptionTestChat({salon,services,hours}:{salon:Salon;services:Service[
  useEffect(()=>{try{localStorage.setItem(storageKey,JSON.stringify(messages))}catch{}},[messages,storageKey]);
  const [input,setInput]=useState(''),[sending,setSending]=useState(false),[error,setError]=useState('');
  const messagesRef=useRef<HTMLDivElement|null>(null);
- useEffect(()=>{const el=messagesRef.current;if(el)el.scrollTo({top:el.scrollHeight,behavior:'smooth'})},[messages,sending]);
+ useEffect(()=>{const el=messagesRef.current;if(el){el.scrollTo({top:el.scrollHeight,behavior:'smooth'});el.lastElementChild?.scrollIntoView({block:'end',behavior:'smooth'})}},[messages,sending]);
  async function send(){
   const text=input.trim();if(!text||sending)return;
   const next=[...messages,{role:'user' as const,content:text}];setMessages(next);setInput('');setSending(true);setError('');
