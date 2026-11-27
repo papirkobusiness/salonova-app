@@ -2,8 +2,8 @@ export interface Env {
  AI: { run(model: string, input: { messages: {role:string;content:string}[]; max_tokens?:number; temperature?:number }): Promise<any> };
  ASSETS: { fetch(request: Request): Promise<Response> };
 }
-const MODEL="@cf/google/gemma-4-26b-a4b-it";
-const FALLBACK_MODEL="@cf/zai-org/glm-4.7-flash";
+const MODEL="@cf/zai-org/glm-4.7-flash";
+const FALLBACK_MODEL="@cf/google/gemma-4-26b-a4b-it";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 function json(body:any,status=200){return new Response(JSON.stringify(body),{status,headers:{...cors,"Content-Type":"application/json"}})}
 function extractReply(result:any):string {
@@ -20,9 +20,9 @@ export default {
    try{
     const body=await request.json() as any;
     const context=body?.context||{};
-    const messages=Array.isArray(body?.messages)?body.messages.slice(-12):[];
+    const messages=Array.isArray(body?.messages)?body.messages.slice(-8):[];
     if(!context.salonName||!Array.isArray(context.services)||messages.length===0)return json({error:"Nedostaju podaci razgovora."},400);
-    const safeMessages=messages.filter((m:any)=>["user","assistant"].includes(m?.role)&&typeof m?.content==="string").map((m:any)=>({role:m.role,content:m.content.slice(0,1400)}));
+    const safeMessages=messages.filter((m:any)=>["user","assistant"].includes(m?.role)&&typeof m?.content==="string").map((m:any)=>({role:m.role,content:m.content.slice(0,1000)}));
     if(!safeMessages.length||safeMessages[safeMessages.length-1].role!=="user")return json({error:"Napišite pitanje za recepciju."},400);
     const serviceFacts=context.services.slice(0,60).map((s:any)=>`• ${String(s.name||"Usluga").slice(0,100)} — ${Number(s.duration_minutes||0)} min — ${Number(s.price||0).toFixed(2)} EUR${s.description?"; "+String(s.description).slice(0,300):""}`).join("\n");
     const hours=context.businessHours?.default||{};
@@ -55,7 +55,7 @@ KAKO POMOĆI:
 - Ne spominji ograničenja osim kada su relevantna za pitanje (npr. stvarna rezervacija).
 
 Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Zagreb",dateStyle:"full"}).format(new Date())}.`;
-    const input={messages:[{role:"system",content:system},...safeMessages],max_tokens:520,temperature:0.35};
+    const input={messages:[{role:"system",content:system},...safeMessages],max_tokens:300,temperature:0.25};
     let result:any=null,reply="";
     try{result=await env.AI.run(MODEL,input);reply=extractReply(result)}catch(_e){reply=""}
     if(!reply){try{result=await env.AI.run(FALLBACK_MODEL,input);reply=extractReply(result)}catch(_e){reply=""}}
