@@ -199,7 +199,7 @@ function ReceptionTestChat({salon,services,hours}:{salon:Salon;services:Service[
   const text=input.trim();if(!text||sending)return;
   const next=[...messages,{role:'user' as const,content:text}];setMessages(next);setInput('');setSending(true);setError('');
   try{
-   const response=await fetch('/api/reception',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({context:{salonName:salon.name,services:services.filter(s=>s.is_active).map(s=>({name:s.name,description:s.description,duration_minutes:s.duration_minutes,price:s.price})),businessHours:hours,timezone:salon.timezone},messages:next.slice(-12)})});
+   const response=await fetch('/api/reception',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({context:{salonName:salon.name,services:services.filter(s=>s.is_active).map(s=>({name:s.name,duration_minutes:s.duration_minutes,price:s.price})),businessHours:hours,timezone:salon.timezone},messages:next.slice(-12)})});
    const data=await response.json();if(!response.ok)throw new Error(data?.error||'Virtualna recepcija trenutačno ne odgovara.');
    setMessages(m=>[...m,{role:'assistant',content:data.reply||'Oprostite, nisam uspjela sastaviti odgovor.'}]);
   }catch(e:any){setError(e.message||'Greška povezivanja');}
