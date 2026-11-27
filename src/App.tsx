@@ -1,7 +1,7 @@
 import LandingPage from './LandingPage'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase, configured, type Salon, type Booking, type Service, type Staff, type Conversation } from './lib'
-import { LayoutDashboard, CalendarDays, Inbox, Users, Scissors, Settings, LogOut, Plus, Search, Bell, Menu, X, Check, Clock3, Euro, UserRound, Sparkles, MessageCircle, ArrowUpRight, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Inbox, Users, Scissors, Settings, LogOut, Plus, Search, Bell, Menu, X, Check, Clock3, Euro, UserRound, Sparkles, MessageCircle, ArrowUpRight, ChevronRight, RotateCcw } from 'lucide-react'
 
 type Page = 'dashboard'|'bookings'|'clients'|'inbox'|'services'|'staff'|'settings'
 const nav: {id:Page; label:string; icon:any}[] = [
@@ -203,6 +203,7 @@ function ReceptionTestChat({salon,services,hours}:{salon:Salon;services:Service[
  const [input,setInput]=useState(''),[sending,setSending]=useState(false),[error,setError]=useState('');
  const messagesRef=useRef<HTMLDivElement|null>(null);
  useEffect(()=>{const el=messagesRef.current;if(el){el.scrollTo({top:el.scrollHeight,behavior:'smooth'});el.lastElementChild?.scrollIntoView({block:'end',behavior:'smooth'})}},[messages,sending]);
+ function resetChat(){if(sending)return;const fresh=[{role:'assistant' as const,content:greeting}];setMessages(fresh);setError('');try{localStorage.removeItem(storageKey)}catch{}}
  async function send(){
   const text=input.trim();if(!text||sending)return;
   const next=[...messages,{role:'user' as const,content:text}];setMessages(next);setInput('');setSending(true);setError('');
@@ -213,7 +214,7 @@ function ReceptionTestChat({salon,services,hours}:{salon:Salon;services:Service[
   }catch(e:any){setError(e.message||'Greška povezivanja');}
   finally{setSending(false)}
  }
- return <div className="reception-test"><div className="reception-test-head"><div><strong><Sparkles size={16}/> Testirajte pametnu recepciju</strong><small>Probni razgovor s podacima vašeg salona</small></div><span className="test-status">PROTOTIP</span></div><div className="reception-test-messages" ref={messagesRef}>{messages.map((m,i)=><div key={i} className={m.role==='user'?'test-message user':'test-message assistant'}><span>{m.content}</span></div>)}{sending&&<div className="test-message assistant"><span>Razmišljam…</span></div>}</div>{error&&<p className="reception-test-error">{error}</p>}<form className="reception-test-input" onSubmit={e=>{e.preventDefault();send()}}><input value={input} onChange={e=>setInput(e.target.value)} placeholder="Npr. Koliko košta šišanje?" disabled={sending}/><button type="submit" disabled={!input.trim()||sending} aria-label="Pošalji"><ArrowUpRight size={17}/></button></form></div>
+ return <div className="reception-test"><div className="reception-test-head"><div><strong><Sparkles size={16}/> Testirajte pametnu recepciju</strong><small>Probni razgovor s podacima vašeg salona</small></div><div className="reception-test-head-actions"><button type="button" className="reception-test-reset" onClick={resetChat} disabled={sending} title="Započni novi razgovor"><RotateCcw size={14}/> Novi razgovor</button><span className="test-status">PROTOTIP</span></div></div><div className="reception-test-messages" ref={messagesRef}>{messages.map((m,i)=><div key={i} className={m.role==='user'?'test-message user':'test-message assistant'}><span>{m.content}</span></div>)}{sending&&<div className="test-message assistant"><span>Razmišljam…</span></div>}</div>{error&&<p className="reception-test-error">{error}</p>}<form className="reception-test-input" onSubmit={e=>{e.preventDefault();send()}}><input value={input} onChange={e=>setInput(e.target.value)} placeholder="Npr. Koliko košta šišanje?" disabled={sending}/><button type="submit" disabled={!input.trim()||sending} aria-label="Pošalji"><ArrowUpRight size={17}/></button></form></div>
 }
 
 function PublicBooking({slug}:{slug:string}){
