@@ -112,11 +112,17 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const dayIndex:Record<string,number>={nedjelja:0,ponedjeljak:1,utorak:2,srijeda:3,cetvrtak:4,petak:5,subota:6};
     let openDays:number[]=[];
     if(dayConfig){
-      const range=dayConfig.match(/(nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\s+(?:do|-)\s+(nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)/);
+      const range=dayConfig.match(/(nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\s+(?:do\s+)?(nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)/);
       if(range){let a=dayIndex[range[1]],b=dayIndex[range[2]];for(let i=a;;i=(i+1)%7){openDays.push(i);if(i===b)break;if(openDays.length>=7)break;}}
       else {for(const d of Object.keys(dayIndex))if(dayConfig.includes(d))openDays.push(dayIndex[d]);}
     }
     // A common "ponedjeljak-petak" default should not accidentally be interpreted as every weekday.
+    const asksSunday=/nedjelj(?:om|a)/i.test(latestUser);
+    if(asksSunday){
+      if(openDays.includes(0))reply=hours.start&&hours.end?"Salon "+context.salonName+" radi nedjeljom od "+hours.start+" do "+hours.end+". 😊":"Salon "+context.salonName+" radi nedjeljom, ali točno radno vrijeme još nije potvrđeno. 😊";
+      else if(openDays.length>0)reply="Salon "+context.salonName+" nedjeljom ne radi. 😊";
+      else reply="Nemam potvrđen podatak radi li salon nedjeljom. Ne bih vam htjela dati pogrešnu informaciju. 😊";
+    }
     const dateIsClosed=selectedDate&&((openDays.length>0&&!openDays.includes(selectedDate.getDay()))||(openDays.length===0&&selectedDate.getDay()===0));
     if(selectedDate){
       const d=selectedDate.getDate(),m=selectedDate.getMonth()+1,y=selectedDate.getFullYear(),actual=weekdays[selectedDate.getDay()];
@@ -145,7 +151,7 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       }
     }
     // This test chat cannot create appointments: block any AI wording that implies a real booking.
-    if(/termin.{0,30}(?:zabilježen|potvrđen|rezerviran)|rezervacija.{0,30}(?:potvrđena|zabilježena)|vidimo se/i.test(reply)){
+    if(/\b(?:zabilježen|zabilježena|zabilježeno|potvrđen|potvrđena|potvrđeno|rezerviran|rezervirana|rezervirano)\b|\bvidimo se\b/i.test(reply)){
       reply="Hvala vam! 😊 Sve podatke imamo u razgovoru, ali termin još nije službeno rezerviran. Rezervaciju možete dovršiti putem stranice salona.";
     }
     return json({reply});
