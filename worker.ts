@@ -28,7 +28,6 @@ export default {
     const serviceFacts=context.services.slice(0,60).map((s:any)=>`• ${String(s.name||"Usluga").slice(0,100)} — ${Number(s.duration_minutes||0)} min — ${Number(s.price||0).toFixed(2)} EUR${s.description?"; "+String(s.description).slice(0,300):""}`).join("\n");
     const hours=context.businessHours?.default||{};
     const todayDate=new Date(new Intl.DateTimeFormat('en-CA',{timeZone:context.timezone||'Europe/Zagreb',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())+'T12:00:00');
-    const dateCalendar=Array.from({length:120},(_,i)=>{const d=new Date(todayDate);d.setDate(d.getDate()+i);return `${d.toLocaleDateString('hr-HR',{timeZone:'Europe/Zagreb',weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'})}`}).join('; ');
     const hoursFact=hours.days&&hours.start&&hours.end? `Raspored: ${hours.days}, ${hours.start}–${hours.end}. Napomena: raspored je općenit za navedene dane; ne znaš pojedinačne iznimke, blagdane ili pauze.`:"Radno vrijeme nije potvrđeno u dostupnim podacima. Ne izmišljaj ga.";
     const system=`Ti si Salonova, virtualna recepcija salona ${context.salonName}. Tvoja zadaća je biti pomoćna, prirodna, pametna i pouzdana recepcionistica — ne chatbot s unaprijed zadanim odgovorima.
 
@@ -64,8 +63,7 @@ KAKO POMOĆI:
 - Ne spominji ograničenja osim kada su relevantna za pitanje (npr. stvarna rezervacija).
 
 Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Zagreb",dateStyle:"full"}).format(new Date())}.
-
-KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
+`;
     const input={messages:[{role:"system",content:system},...safeMessages],max_tokens:240,max_completion_tokens:240,temperature:0.15,reasoning_effort:"low",chat_template_kwargs:{enable_thinking:false}};
     let result:any=null,reply="";
     try{result=await env.AI.run(MODEL,input);reply=extractReply(result);if(!reply)console.error("Salonova AI primary returned empty response",JSON.stringify(result).slice(0,1200))}catch(e){console.error("Salonova AI primary failed",e);reply=""}
