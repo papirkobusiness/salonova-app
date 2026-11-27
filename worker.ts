@@ -79,7 +79,7 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const services=context.services.filter((s:any)=>s?.name);
     const serviceAliases=(s:any)=>{const n=normalize(String(s.name));const aliases=[n];if(/musko|male|barber/.test(n))aliases.push("musko","musko sisanje","muski","barber");if(/zensko|female/.test(n))aliases.push("zensko","zensko sisanje","zena");if(/pramen|highlight/.test(n))aliases.push("pramenovi","pramen","highlight");return aliases};
     const chosenService=services.find((s:any)=>serviceAliases(s).some((a:string)=>normalize(userText).includes(a)))||null;
-    const genericHaircut=/\\bsisanje\\b/.test(normalize(latestUser))&&!/(musko|muski|zensko|zena)/.test(normalize(latestUser));
+    const genericHaircut=/\bsisanje\b/.test(normalize(latestUser))&&!/(musko|muski|zensko|zena)/.test(normalize(latestUser));
     const servicePrompted=/za koju uslugu|koju uslugu|sto biste zeljeli rezervirati|sto biste zeleli rezervisati|rezervirati termin/i.test(priorAssistant);
     const awaitingService=/za koju uslugu|koju uslugu|sto biste zeljeli rezervirati|sto biste zeljeli|koju biste odabrali/i.test(priorAssistant);
     const allUserText=normalize(userText);
@@ -124,10 +124,15 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       else reply="Nemam potvrđen podatak radi li salon nedjeljom. Ne bih vam htjela dati pogrešnu informaciju. 😊";
     }
     const dateIsClosed=selectedDate&&((openDays.length>0&&!openDays.includes(selectedDate.getDay()))||(openDays.length===0&&selectedDate.getDay()===0));
+    const easterSunday=(year:number)=>{const a=year%19,b=Math.floor(year/100),c0=year%100,d=Math.floor(b/4),e=b%4,f0=Math.floor((b+8)/25),g=Math.floor((b-f0+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c0/4),k=c0%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;return new Date(year,month-1,day,12);};
+    const croatianHoliday=(d:Date)=>{const y=d.getFullYear(),m=d.getMonth()+1,day=d.getDate();const fixed=["1-1","1-6","5-1","5-30","6-22","8-5","8-15","11-1","11-18","12-25","12-26"];if(fixed.includes(m+"-"+day))return true;const easter=easterSunday(y);const offsets=[0,1,60];return offsets.some(offset=>{const x=new Date(easter);x.setDate(x.getDate()+offset);return x.getMonth()===d.getMonth()&&x.getDate()===d.getDate();});};
+    const dateIsHoliday=!!(selectedDate&&croatianHoliday(selectedDate));
+
     if(selectedDate){
       const d=selectedDate.getDate(),m=selectedDate.getMonth()+1,y=selectedDate.getFullYear(),actual=weekdays[selectedDate.getDay()];
       if(selectedDate.getTime()<new Date(currentYear,now.getMonth(),now.getDate(),12).getTime())reply="Taj datum je već prošao 😊 Možete li odabrati neki budući datum?";
       else if(dateIsClosed)reply=`${d}. ${m}. ${y}. je ${actual}, a salon taj dan ne radi. 😊 Možete li odabrati drugi datum?`;
+      else if(dateIsHoliday)reply=`${d}. ${m}. ${y}. je blagdan, a posebno radno vrijeme salona nije potvrđeno. 😊 Ne bih vam htjela ponuditi termin bez provjere. Želite li odabrati drugi datum?`;
       else if(dayName&&dayName!==actual)reply=`Samo da provjerimo 😊 ${d}. ${m}. ${y}. je ${actual}, a ne ${dayName}. Želite li taj datum?`;
       else if((/(?:^|\b)[0-3]?\d[.\/-][01]?\d(?:[.\/-]\d{2,4})?(?:\b|$)/.test(latestUser)||/\b[0-3]?\d\s+(?:sijecn|veljac|ozuj|trav|svib|lip|srpn|kolovoz|ruj|listopad|studen|prosin)/i.test(normalize(latestUser)))&&!/(?:\b[01]?\d|2[0-3]):[0-5]\d|\b(?:[01]?\d|2[0-3])\s*(?:h|sati)\b/i.test(latestUser))reply=`Odlično, ${d}. ${m}. ${y}. je ${actual}. Koje vrijeme biste željeli? 😊`;
       else if(/\b(?:to je|je|pada na) (?:nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\b/i.test(reply))reply=`Odlično 😊 ${d}. ${m}. ${y}. je ${actual}. Želite li taj datum?`;
@@ -138,7 +143,7 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const explicitTime=latestUser.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b/i);
     const bareHour=latestUser.trim().match(/^([01]?\d|2[0-3])$/);
     const timeMatch=explicitTime||((bareHour&&/vrijeme|sat|u koliko|koji termin/i.test(priorAssistant))?bareHour:null);
-    if(timeMatch&&selectedDate&&!dateIsClosed&&chosenService){
+    if(timeMatch&&selectedDate&&!dateIsClosed&&!dateIsHoliday&&chosenService){
       const requestedHour=Number(explicitTime?.[1]||explicitTime?.[3]||bareHour?.[1]),requestedMinute=Number(explicitTime?.[2]||0),requestedMinutes=requestedHour*60+requestedMinute;
       const parseClock=(v:any)=>{const m=String(v||"").match(/(\d{1,2})[:.](\d{2})/);return m?Number(m[1])*60+Number(m[2]):null};
       const opening=parseClock(hours.start),closing=parseClock(hours.end),duration=Number(chosenService.duration_minutes||0);
@@ -165,6 +170,9 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       }else if(phoneDigits.length>=9&&phoneDigits.length<=12){
         reply="Hvala vam! 😊 Broj mobitela sam prepoznala. Još mi samo napišite svoje ime.";
       }
+    }
+    if(askedForContact&&/^(da|moze|moze hvala|naravno|u redu|okej|ok|moze tako)$/i.test(normalize(latestUser))){
+      reply="Naravno! 😊 Napišite mi svoje ime i broj mobitela pa ću zabilježiti podatke za salon.";
     }
     // Price-list intent (including common typos) returns configured services, never opening hours.
     const asksPriceList=/\b(cjenik|cijenik|cjenovnik|cijene|cijena|koliko kosta|koliko kostaju|cijena usluge|cjenik usluga)\b/.test(normalize(latestUser));
