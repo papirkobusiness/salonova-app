@@ -621,6 +621,7 @@
 @media(max-width:520px){.webchat-install{padding:14px}.webchat-install .panel-head{display:block}.webchat-code{height:160px}}
 
 .reception-test{border:1px solid #e8e9e3;border-radius:16px;overflow:hidden;background:#fbfcfa;margin-top:18px}
+.reception-test-head-actions{display:flex;align-items:center;gap:8px}.reception-test-reset{display:flex;align-items:center;gap:5px;border:1px solid #e6e8e1;background:white;color:#6b725f;padding:6px 9px;border-radius:9px;font-size:11px;cursor:pointer}.reception-test-reset:disabled{opacity:.5;cursor:not-allowed}
 .reception-test-head{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid #e9ebe5;gap:12px}
 .reception-test-head strong{display:flex;align-items:center;gap:8px;font-size:14px}
 .reception-test-head small{display:block;color:#858981;font-size:12px;margin-top:4px}
