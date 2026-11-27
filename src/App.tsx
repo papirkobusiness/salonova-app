@@ -202,7 +202,7 @@ function ReceptionTestChat({salon,services,hours}:{salon:Salon;services:Service[
  useEffect(()=>{try{localStorage.setItem(storageKey,JSON.stringify(messages))}catch{}},[messages,storageKey]);
  const [input,setInput]=useState(''),[sending,setSending]=useState(false),[error,setError]=useState('');
 
- const [input,setInput]=useState(''),[sending,setSending]=useState(false),[error,setError]=useState('');
+
  async function send(){
   const text=input.trim();if(!text||sending)return;
   const next=[...messages,{role:'user' as const,content:text}];setMessages(next);setInput('');setSending(true);setError('');
