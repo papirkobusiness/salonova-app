@@ -86,6 +86,23 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const awaitingService=/za koju uslugu|koju biste odabrale|koju biste odabrali|što biste željeli rezervirati|koju uslugu želite rezervirati/i.test(priorAssistant);
     if(awaitingService&&!anyServiceChosen)reply="Haha, piće ipak nije na našem cjeniku 😄 Ali za frizuru sam prava adresa! Što biste željeli rezervirati: muško šišanje, žensko šišanje ili pramenove?";
     if(serviceChosen&&servicePrompted&&!explicitDate)reply="Super izbor! 😊 "+latestUser.trim().replace(/[.!?]+$/,"")+". Koji datum bi vam odgovarao?";
+    // Validate weekday for explicit numeric dates in the customer's latest message; never trust the model's weekday calculation.
+    const dateMatch=latestUser.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/);
+    if(dateMatch){
+      const day=Number(dateMatch[1]),month=Number(dateMatch[2]),yearRaw=dateMatch[3];
+      const year=yearRaw?(Number(yearRaw)<100?2000+Number(yearRaw):Number(yearRaw)):new Date().getFullYear();
+      const dateObj=new Date(year,month-1,day);
+      if(dateObj.getFullYear()===year&&dateObj.getMonth()===month-1&&dateObj.getDate()===day){
+        const weekdays=["nedjelja","ponedjeljak","utorak","srijeda","četvrtak","petak","subota"];
+        const actualDay=weekdays[dateObj.getDay()];
+        const statedDay=latestUser.toLowerCase().match(/\\b(nedjelja|ponedjeljak|utorak|srijeda|četvrtak|petak|subota)\\b/);
+        if(statedDay&&statedDay[1]!==actualDay){
+          reply=`Samo da provjerimo 😊 ${day}. ${month}. ${year}. je ${actualDay}, a ne ${statedDay[1]}. Želite li rezervaciju za taj datum?`;
+        } else if(/\\b(?:to je|je) (?:nedjelja|ponedjeljak|utorak|srijeda|četvrtak|petak|subota)\\b/i.test(reply)){
+          reply=`Odlično 😊 ${day}. ${month}. ${year}. pada na ${actualDay}. Želite li taj datum?`;
+        }
+      }
+    }
     // This test chat cannot create appointments: block any AI wording that implies a real booking.
     if(/termin.{0,30}(?:zabilježen|potvrđen|rezerviran)|rezervacija.{0,30}(?:potvrđena|zabilježena)|vidimo se/i.test(reply)){
       reply="Hvala vam! 😊 Sve podatke imamo u razgovoru, ali termin još nije službeno rezerviran. Rezervaciju možete dovršiti putem stranice salona.";
