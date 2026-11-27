@@ -94,8 +94,8 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const textualDate=normalize(latestUser).match(/\b([0-3]?\d)\s+(sijecn(?:ja|j)?|veljac(?:e|a)?|ozuj(?:ka|ak)?|trav(?:nja|anj)?|svib(?:nja|anj)?|lip(?:nja|anj)?|srpn(?:ja|j)?|kolovoz(?:a)?|ruj(?:na|an)?|listopad(?:a)?|studen(?:oga|i)?|prosin(?:ca|ac)?)\b/);
     const now=new Date();
     const currentYear=Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(now));
-    if(numericDate)dateParts={day:Number(numericDate[1]),month:Number(numericDate[2]),year:numericDate[3]?(Number(numericDate[3])<100?2000+Number(numericDate[3]):Number(numericDate[3])):currentYear};
-    else if(textualDate){const mo=months[textualDate[2]]||months[textualDate[2]+"a"]||months[textualDate[2]+"e"];if(mo)dateParts={day:Number(textualDate[1]),month:mo,year:currentYear};}
+    if(numericDate){const y=numericDate[3]?(Number(numericDate[3])<100?2000+Number(numericDate[3]):Number(numericDate[3])):currentYear;const d0=new Date(y,Number(numericDate[2])-1,Number(numericDate[1]),12);const today0=new Date(currentYear,now.getMonth(),now.getDate(),12);dateParts={day:Number(numericDate[1]),month:Number(numericDate[2]),year:(!numericDate[3]&&d0<today0)?currentYear+1:y};}
+    else if(textualDate){const mo=months[textualDate[2]]||months[textualDate[2]+"a"]||months[textualDate[2]+"e"];if(mo){const d0=new Date(currentYear,mo-1,Number(textualDate[1]),12),today0=new Date(currentYear,now.getMonth(),now.getDate(),12);dateParts={day:Number(textualDate[1]),month:mo,year:d0<today0?currentYear+1:currentYear};}}
     const weekdays=["nedjelja","ponedjeljak","utorak","srijeda","cetvrtak","petak","subota"];
     const dayName=normalize(latestUser).match(/\b(nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\b/)?.[1]||null;
     let selectedDate:any=null;
@@ -117,7 +117,7 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const dateIsClosed=selectedDate&&((openDays.length>0&&!openDays.includes(selectedDate.getDay()))||(openDays.length===0&&selectedDate.getDay()===0));
     if(selectedDate){
       const d=selectedDate.getDate(),m=selectedDate.getMonth()+1,y=selectedDate.getFullYear(),actual=weekdays[selectedDate.getDay()];
-      if(selectedDate.getTime()<new Date(currentYear,now.getMonth(),now.getDate(),12).getTime()&&selectedDate.getFullYear()===currentYear)reply="Taj datum je već prošao 😊 Možete li odabrati neki budući datum?";
+      if(selectedDate.getTime()<new Date(currentYear,now.getMonth(),now.getDate(),12).getTime())reply="Taj datum je već prošao 😊 Možete li odabrati neki budući datum?";
       else if(dateIsClosed)reply=`${d}. ${m}. ${y}. je ${actual}, a salon taj dan ne radi. 😊 Možete li odabrati drugi datum?`;
       else if(dayName&&dayName!==actual)reply=`Samo da provjerimo 😊 ${d}. ${m}. ${y}. je ${actual}, a ne ${dayName}. Želite li taj datum?`;
       else if(/\b(?:to je|je|pada na) (?:nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\b/i.test(reply))reply=`Odlično 😊 ${d}. ${m}. ${y}. je ${actual}. Želite li taj datum?`;
