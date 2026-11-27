@@ -619,3 +619,21 @@
 .webchat-install .primary{margin-bottom:4px}
 @media(max-width:900px){.channel-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.webchat-install{padding:14px}.webchat-install .panel-head{display:block}.webchat-code{height:160px}}
+
+.reception-test{border:1px solid #e8e9e3;border-radius:16px;overflow:hidden;background:#fbfcfa;margin-top:18px}
+.reception-test-head{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid #e9ebe5;gap:12px}
+.reception-test-head strong{display:flex;align-items:center;gap:8px;font-size:14px}
+.reception-test-head small{display:block;color:#858981;font-size:12px;margin-top:4px}
+.test-status{font-size:10px;font-weight:700;letter-spacing:.06em;color:#8a6c38;background:#f7f0e2;padding:5px 8px;border-radius:20px}
+.reception-test-messages{display:flex;flex-direction:column;gap:10px;padding:14px;min-height:220px;max-height:360px;overflow:auto;background:#f8f9f6}
+.test-message{display:flex;max-width:88%;font-size:13px;line-height:1.55;white-space:pre-wrap}
+.test-message span{padding:10px 12px;border-radius:14px}
+.test-message.assistant{align-self:flex-start}.test-message.assistant span{background:white;border:1px solid #eceee8;border-bottom-left-radius:5px}
+.test-message.user{align-self:flex-end}.test-message.user span{background:#68745b;color:white;border-bottom-right-radius:5px}
+.reception-test-input{display:flex;gap:8px;padding:12px;border-top:1px solid #e9ebe5;background:white}
+.reception-test-input input{flex:1;min-width:0;border:1px solid #e5e7e1;border-radius:11px;padding:11px 12px;font-size:13px;outline:none}
+.reception-test-input input:focus{border-color:#87917d}
+.reception-test-input button{width:40px;height:40px;border:0;border-radius:11px;background:#68745b;color:white;display:grid;place-items:center}
+.reception-test-input button:disabled{opacity:.4;cursor:not-allowed}
+.reception-test-error{margin:0;padding:0 12px 10px;color:#b24b44;font-size:12px}
+@media(max-width:600px){.reception-test-messages{min-height:200px;max-height:300px}}
