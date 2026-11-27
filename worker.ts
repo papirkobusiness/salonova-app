@@ -80,6 +80,11 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const userText=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content).join(" ");
     // Require a date supplied by the customer, not an AI-invented weekday/date.
     const explicitDate=/\b(?:[0-3]?\d)[.\/-](?:[01]?\d)(?:[.\/-]\d{2,4})?\b|\b(?:[0-3]?\d)\s*(?:\.\u00a0|\.\s*)?(?:siječnja|veljače|ožujka|travnja|svibnja|lipnja|srpnja|kolovoza|rujna|listopada|studenoga|prosinca)\b/i.test(userText);
+    // Do not advance to date/time until a service is explicitly chosen.
+    const allUserText=userText.toLowerCase();
+    const anyServiceChosen=context.services.some((s:any)=>s.name&&allUserText.includes(String(s.name).toLowerCase()));
+    const awaitingService=/za koju uslugu|koju biste odabrale|koju biste odabrali|što biste željeli rezervirati|koju uslugu želite rezervirati/i.test(priorAssistant);
+    if(awaitingService&&!anyServiceChosen)reply="Haha, piće ipak nije na našem cjeniku 😄 Ali za frizuru sam prava adresa! Što biste željeli rezervirati: muško šišanje, žensko šišanje ili pramenove?";
     if(serviceChosen&&servicePrompted&&!explicitDate)reply="Super izbor! 😊 "+latestUser.trim().replace(/[.!?]+$/,"")+". Koji datum bi vam odgovarao?";
     // This test chat cannot create appointments: block any AI wording that implies a real booking.
     if(/termin.{0,30}(?:zabilježen|potvrđen|rezerviran)|rezervacija.{0,30}(?:potvrđena|zabilježena)|vidimo se/i.test(reply)){
