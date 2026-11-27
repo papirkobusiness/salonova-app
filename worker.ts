@@ -71,8 +71,16 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     try{result=await env.AI.run(MODEL,input);reply=extractReply(result);if(!reply)console.error("Salonova AI primary returned empty response",JSON.stringify(result).slice(0,1200))}catch(e){console.error("Salonova AI primary failed",e);reply=""}
     if(!reply){try{result=await env.AI.run(FALLBACK_MODEL,input);reply=extractReply(result);if(!reply)console.error("Salonova AI fallback returned empty response",JSON.stringify(result).slice(0,1200))}catch(e){console.error("Salonova AI fallback failed",e);reply=""}}
     if(!reply)return json({error:"Recepcija se trenutačno ne može povezati s AI-jem. Pokušajte ponovno za trenutak."},502);
-    // Deterministic guard against the repeatedly generated unnatural phrasing.
-    reply=reply.replace(/koju uslugu želite obaviti\??/gi,"Za koju uslugu želite rezervirati termin?");
+    // Deterministic safeguards: natural service phrasing and booking order.
+    reply=reply.replace(/koju uslugu želite obaviti\\??/gi,"Za koju uslugu želite rezervirati termin?");
+    const latestUser=safeMessages.filter((m:any)=>m.role==="user").slice(-1)[0]?.content||"";
+    const priorAssistant=safeMessages.filter((m:any)=>m.role==="assistant").slice(-2).map((m:any)=>m.content).join(" ");
+    const serviceChosen=context.services.some((s:any)=>s.name&&latestUser.toLowerCase().includes(String(s.name).toLowerCase()));
+    const servicePrompted=/rezerv|termin|koju uslugu|što biste željeli/i.test(priorAssistant);
+    const userText=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content).join(" ");
+    // Require a date supplied by the customer, not an AI-invented weekday/date.
+    const explicitDate=/\\b(?:[0-3]?\\d)[.\\/-](?:[01]?\\d)(?:[.\\/-]\\d{2,4})?\\b|\\b(?:[0-3]?\\d)\\s*(?:\.\u00a0|\.\s*)?(?:siječnja|veljače|ožujka|travnja|svibnja|lipnja|srpnja|kolovoza|rujna|listopada|studenoga|prosinca)\\b/i.test(userText);
+    if(serviceChosen&&servicePrompted&&!explicitDate)reply="Odlično, "+latestUser.trim().replace(/[.!?]+$/,"")+". Koji točan datum vam odgovara?";
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
   }
