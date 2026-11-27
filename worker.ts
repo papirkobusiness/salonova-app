@@ -90,8 +90,10 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     // Parse date from latest message; support numeric Croatian dates and Croatian month names.
     const months:Record<string,number>={"sijecanj":1,"sijecnja":1,"veljaca":2,"veljace":2,"ozujak":3,"ozujka":3,"travanj":4,"travnja":4,"svibanj":5,"svibnja":5,"lipanj":6,"lipnja":6,"srpanj":7,"srpnja":7,"kolovoz":8,"kolovoza":8,"rujan":9,"rujna":9,"listopad":10,"listopada":10,"studeni":11,"studenoga":11,"prosinac":12,"prosinca":12};
     let dateParts:any=null;
-    const numericDate=latestUser.match(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/);
-    const textualDate=normalize(latestUser).match(/\b([0-3]?\d)\s+(sijecn(?:ja|j)?|veljac(?:e|a)?|ozuj(?:ka|ak)?|trav(?:nja|anj)?|svib(?:nja|anj)?|lip(?:nja|anj)?|srpn(?:ja|j)?|kolovoz(?:a)?|ruj(?:na|an)?|listopad(?:a)?|studen(?:oga|i)?|prosin(?:ca|ac)?)\b/);
+    const numericDates=Array.from(userText.matchAll(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/g));
+    const numericDate=numericDates[numericDates.length-1]||null;
+    const textualDates=Array.from(normalize(userText).matchAll(/\b([0-3]?\d)\s+(sijecn(?:ja|j)?|veljac(?:e|a)?|ozuj(?:ka|ak)?|trav(?:nja|anj)?|svib(?:nja|anj)?|lip(?:nja|anj)?|srpn(?:ja|j)?|kolovoz(?:a)?|ruj(?:na|an)?|listopad(?:a)?|studen(?:oga|i)?|prosin(?:ca|ac)?)\b/g));
+    const textualDate=textualDates[textualDates.length-1]||null;
     const now=new Date();
     const currentYear=Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(now));
     if(numericDate){const y=numericDate[3]?(Number(numericDate[3])<100?2000+Number(numericDate[3]):Number(numericDate[3])):currentYear;const d0=new Date(y,Number(numericDate[2])-1,Number(numericDate[1]),12);const today0=new Date(currentYear,now.getMonth(),now.getDate(),12);dateParts={day:Number(numericDate[1]),month:Number(numericDate[2]),year:(!numericDate[3]&&d0<today0)?currentYear+1:y};}
