@@ -105,7 +105,8 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       else reply="Taj datum ne postoji u kalendaru 😊 Možete li napisati drugi datum?";
     }
     // Parse configured open weekdays. Range formats (ponedjeljak-petak) and lists are supported.
-    const rawDayConfig=String(hours.days||"");\n    const dayConfig=normalize(rawDayConfig);
+    const rawDayConfig=String(hours.days||"");
+    const dayConfig=normalize(rawDayConfig);
     const dayIndex:Record<string,number>={nedjelja:0,ponedjeljak:1,utorak:2,srijeda:3,cetvrtak:4,petak:5,subota:6};
     let openDays:number[]=[];
     if(dayConfig){
