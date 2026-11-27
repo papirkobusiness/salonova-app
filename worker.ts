@@ -166,6 +166,13 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
         reply="Hvala vam! 😊 Broj mobitela sam prepoznala. Još mi samo napišite svoje ime.";
       }
     }
+    // Price-list intent (including common typos) returns configured services, never opening hours.
+    const asksPriceList=/\b(cjenik|cijenik|cjenovnik|cijene|cijena|koliko kosta|koliko kostaju|cijena usluge|cjenik usluga)\b/.test(normalize(latestUser));
+    if(asksPriceList){
+      reply=services.length
+        ? "Naravno! 😊 Na našem cjeniku su:\n"+services.map((s:any)=>"• "+s.name+" — "+Number(s.price||0).toFixed(2)+" EUR ("+Number(s.duration_minutes||0)+" min)").join("\n")+"\nŽelite li rezervirati neku od ovih usluga?"
+        : "Salon još nije unio cjenik usluga. 😊";
+    }
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
   }
