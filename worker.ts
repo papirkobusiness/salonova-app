@@ -75,7 +75,7 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const latestUser=safeMessages.filter((m:any)=>m.role==="user").slice(-1)[0]?.content||"";
     const priorAssistant=safeMessages.filter((m:any)=>m.role==="assistant").slice(-3).map((m:any)=>m.content).join(" ");
     const userText=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content).join(" ");
-    const normalize=(v:string)=>String(v||"").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\\s+/g," ").trim();
+    const normalize=(v:string)=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
     const services=context.services.filter((s:any)=>s?.name);
     const serviceAliases=(s:any)=>{const n=normalize(String(s.name));const aliases=[n];if(/musko|male|barber/.test(n))aliases.push("musko","musko sisanje","muski","sisanje","barber");if(/zensko|female/.test(n))aliases.push("zensko","zensko sisanje","zena","sisanje");if(/pramen|highlight/.test(n))aliases.push("pramenovi","pramen","highlight");return aliases};
     const chosenService=services.find((s:any)=>serviceAliases(s).some((a:string)=>normalize(userText).includes(a)))||null;
@@ -84,18 +84,18 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const allUserText=normalize(userText);
     const serviceMentioned=!!chosenService;
     if(awaitingService&&!serviceMentioned)reply="Haha, piće ipak nije na našem cjeniku 😄 Ali za frizuru sam prava adresa! Što biste željeli rezervirati: "+services.map((s:any)=>s.name).join(", ")+ "?";
-    if(chosenService&&servicePrompted&&!/\\b(?:[0-3]?\\d)[.\\/-](?:[01]?\\d)(?:[.\\/-]\\d{2,4})?\\b/.test(userText))reply="Super izbor! 😊 "+String(chosenService.name)+". Koji datum bi vam odgovarao?";
+    if(chosenService&&servicePrompted&&!/\b(?:[0-3]?\d)[.\/-](?:[01]?\d)(?:[.\/-]\d{2,4})?\b/.test(userText))reply="Super izbor! 😊 "+String(chosenService.name)+". Koji datum bi vam odgovarao?";
     // Parse date from latest message; support numeric Croatian dates and Croatian month names.
     const months:Record<string,number>={"sijecanj":1,"sijecnja":1,"veljaca":2,"veljace":2,"ozujak":3,"ozujka":3,"travanj":4,"travnja":4,"svibanj":5,"svibnja":5,"lipanj":6,"lipnja":6,"srpanj":7,"srpnja":7,"kolovoz":8,"kolovoza":8,"rujan":9,"rujna":9,"listopad":10,"listopada":10,"studeni":11,"studenoga":11,"prosinac":12,"prosinca":12};
     let dateParts:any=null;
-    const numericDate=latestUser.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/);
-    const textualDate=normalize(latestUser).match(/\\b([0-3]?\\d)\\s+(sijecn(?:ja|j)?|veljac(?:e|a)?|ozuj(?:ka|ak)?|trav(?:nja|anj)?|svib(?:nja|anj)?|lip(?:nja|anj)?|srpn(?:ja|j)?|kolovoz(?:a)?|ruj(?:na|an)?|listopad(?:a)?|studen(?:oga|i)?|prosin(?:ca|ac)?)\\b/);
+    const numericDate=latestUser.match(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/);
+    const textualDate=normalize(latestUser).match(/\b([0-3]?\d)\s+(sijecn(?:ja|j)?|veljac(?:e|a)?|ozuj(?:ka|ak)?|trav(?:nja|anj)?|svib(?:nja|anj)?|lip(?:nja|anj)?|srpn(?:ja|j)?|kolovoz(?:a)?|ruj(?:na|an)?|listopad(?:a)?|studen(?:oga|i)?|prosin(?:ca|ac)?)\b/);
     const now=new Date();
     const currentYear=Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(now));
     if(numericDate)dateParts={day:Number(numericDate[1]),month:Number(numericDate[2]),year:numericDate[3]?(Number(numericDate[3])<100?2000+Number(numericDate[3]):Number(numericDate[3])):currentYear};
     else if(textualDate){const mo=months[textualDate[2]]||months[textualDate[2]+"a"]||months[textualDate[2]+"e"];if(mo)dateParts={day:Number(textualDate[1]),month:mo,year:currentYear};}
     const weekdays=["nedjelja","ponedjeljak","utorak","srijeda","cetvrtak","petak","subota"];
-    const dayName=normalize(latestUser).match(/\\b(nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\\b/)?.[1]||null;
+    const dayName=normalize(latestUser).match(/\b(nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\b/)?.[1]||null;
     let selectedDate:any=null;
     if(dateParts){
       const d=new Date(dateParts.year,dateParts.month-1,dateParts.day,12);
@@ -103,7 +103,7 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       else reply="Taj datum ne postoji u kalendaru 😊 Možete li napisati drugi datum?";
     }
     // Parse configured open weekdays. Range formats (ponedjeljak-petak) and lists are supported.
-    const dayConfig=normalize(String(hours.days||""));
+    const rawDayConfig=String(hours.days||"");\n    const dayConfig=normalize(rawDayConfig);
     const dayIndex:Record<string,number>={nedjelja:0,ponedjeljak:1,utorak:2,srijeda:3,cetvrtak:4,petak:5,subota:6};
     let openDays:number[]=[];
     if(dayConfig){
@@ -112,21 +112,21 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       else {for(const d of Object.keys(dayIndex))if(dayConfig.includes(d))openDays.push(dayIndex[d]);}
     }
     // A common "ponedjeljak-petak" default should not accidentally be interpreted as every weekday.
-    const dateIsClosed=selectedDate&&openDays.length>0&&!openDays.includes(selectedDate.getDay());
+    const dateIsClosed=selectedDate&&((openDays.length>0&&!openDays.includes(selectedDate.getDay()))||(openDays.length===0&&selectedDate.getDay()===0));
     if(selectedDate){
       const d=selectedDate.getDate(),m=selectedDate.getMonth()+1,y=selectedDate.getFullYear(),actual=weekdays[selectedDate.getDay()];
       if(selectedDate.getTime()<new Date(currentYear,now.getMonth(),now.getDate(),12).getTime()&&selectedDate.getFullYear()===currentYear)reply="Taj datum je već prošao 😊 Možete li odabrati neki budući datum?";
       else if(dateIsClosed)reply=` ${d}. ${m}. ${y}. je ${actual}, a salon taj dan ne radi. 😊 Možete li odabrati drugi datum?`;
       else if(dayName&&dayName!==actual)reply=`Samo da provjerimo 😊 ${d}. ${m}. ${y}. je ${actual}, a ne ${dayName}. Želite li taj datum?`;
-      else if(/\\b(?:to je|je|pada na) (?:nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\\b/i.test(reply))reply=`Odlično 😊 ${d}. ${m}. ${y}. je ${actual}. Želite li taj datum?`;
+      else if(/\b(?:to je|je|pada na) (?:nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\b/i.test(reply))reply=`Odlično 😊 ${d}. ${m}. ${y}. je ${actual}. Želite li taj datum?`;
     }else if(dayName&&!dateParts){
       reply="Možete li mi napisati točan datum (npr. 5.12.)? Tako ćemo izbjeći zabunu oko dana. 😊";
     }
     // Validate selected time only when date/service details are known enough; time parsing accepts 19, 19:00, 19h.
-    const timeMatch=latestUser.match(/(?:^|\\b)([01]?\\d|2[0-3])(?:[:.]([0-5]\\d))?\\s*(?:h|sati)?\\b/i);
+    const timeMatch=latestUser.match(/(?:^|\b)([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:h|sati)?\b/i);
     if(timeMatch&&selectedDate&&!dateIsClosed&&chosenService){
-      const requestedHour=Number(timeMatch[1]),requestedMinute=Number(timeMatch[2]||0),requestedMinutes=requestedHour*60+requestedMinute;
-      const parseClock=(v:any)=>{const m=String(v||"").match(/(\\d{1,2})[:.](\\d{2})/);return m?Number(m[1])*60+Number(m[2]):null};
+      const requestedHour=Number(explicitTime?.[1]||explicitTime?.[3]||bareHour?.[1]),requestedMinute=Number(explicitTime?.[2]||0),requestedMinutes=requestedHour*60+requestedMinute;
+      const parseClock=(v:any)=>{const m=String(v||"").match(/(\d{1,2})[:.](\d{2})/);return m?Number(m[1])*60+Number(m[2]):null};
       const opening=parseClock(hours.start),closing=parseClock(hours.end),duration=Number(chosenService.duration_minutes||0);
       if(opening!==null&&closing!==null){
         const fmt=(m:number)=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
