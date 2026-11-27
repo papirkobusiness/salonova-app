@@ -77,13 +77,15 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const userText=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content).join(" ");
     const normalize=(v:string)=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
     const services=context.services.filter((s:any)=>s?.name);
-    const serviceAliases=(s:any)=>{const n=normalize(String(s.name));const aliases=[n];if(/musko|male|barber/.test(n))aliases.push("musko","musko sisanje","muski","sisanje","barber");if(/zensko|female/.test(n))aliases.push("zensko","zensko sisanje","zena","sisanje");if(/pramen|highlight/.test(n))aliases.push("pramenovi","pramen","highlight");return aliases};
+    const serviceAliases=(s:any)=>{const n=normalize(String(s.name));const aliases=[n];if(/musko|male|barber/.test(n))aliases.push("musko","musko sisanje","muski","barber");if(/zensko|female/.test(n))aliases.push("zensko","zensko sisanje","zena");if(/pramen|highlight/.test(n))aliases.push("pramenovi","pramen","highlight");return aliases};
     const chosenService=services.find((s:any)=>serviceAliases(s).some((a:string)=>normalize(userText).includes(a)))||null;
+    const genericHaircut=/\\bsisanje\\b/.test(normalize(latestUser))&&!/(musko|muski|zensko|zena)/.test(normalize(latestUser));
     const servicePrompted=/za koju uslugu|koju uslugu|sto biste zeljeli rezervirati|sto biste zeleli rezervisati|rezervirati termin/i.test(priorAssistant);
     const awaitingService=/za koju uslugu|koju uslugu|sto biste zeljeli rezervirati|sto biste zeljeli|koju biste odabrali/i.test(priorAssistant);
     const allUserText=normalize(userText);
     const serviceMentioned=!!chosenService;
     if(awaitingService&&!serviceMentioned)reply="Haha, piće ipak nije na našem cjeniku 😄 Ali za frizuru sam prava adresa! Što biste željeli rezervirati: "+services.map((s:any)=>s.name).join(", ")+ "?";
+    if(genericHaircut)reply="Želite li muško ili žensko šišanje? 😊";
     if(chosenService&&servicePrompted&&!/\b(?:[0-3]?\d)[.\/-](?:[01]?\d)(?:[.\/-]\d{2,4})?\b/.test(userText))reply="Super izbor! 😊 "+String(chosenService.name)+". Koji datum bi vam odgovarao?";
     // Parse date from latest message; support numeric Croatian dates and Croatian month names.
     const months:Record<string,number>={"sijecanj":1,"sijecnja":1,"veljaca":2,"veljace":2,"ozujak":3,"ozujka":3,"travanj":4,"travnja":4,"svibanj":5,"svibnja":5,"lipanj":6,"lipnja":6,"srpanj":7,"srpnja":7,"kolovoz":8,"kolovoza":8,"rujan":9,"rujna":9,"listopad":10,"listopada":10,"studeni":11,"studenoga":11,"prosinac":12,"prosinca":12};
