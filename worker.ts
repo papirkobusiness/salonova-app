@@ -72,7 +72,7 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     if(!reply){try{result=await env.AI.run(FALLBACK_MODEL,input);reply=extractReply(result);if(!reply)console.error("Salonova AI fallback returned empty response",JSON.stringify(result).slice(0,1200))}catch(e){console.error("Salonova AI fallback failed",e);reply=""}}
     if(!reply)return json({error:"Recepcija se trenutačno ne može povezati s AI-jem. Pokušajte ponovno za trenutak."},502);
     // Deterministic safeguards: natural service phrasing and booking order.
-    reply=reply.replace(/koju uslugu želite obaviti\\??/gi,"Za koju uslugu želite rezervirati termin?");
+    reply=reply.replace(/koju uslugu želite obaviti\??/gi,"Za koju uslugu želite rezervirati termin?");
     const latestUser=safeMessages.filter((m:any)=>m.role==="user").slice(-1)[0]?.content||"";
     const priorAssistant=safeMessages.filter((m:any)=>m.role==="assistant").slice(-2).map((m:any)=>m.content).join(" ");
     const serviceChosen=context.services.some((s:any)=>s.name&&latestUser.toLowerCase().includes(String(s.name).toLowerCase()));
