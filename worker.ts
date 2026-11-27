@@ -35,6 +35,7 @@ export default {
 JEZIK, TON I RAZUMIJEVANJE:
 - Odgovaraj na jeziku klijenta; hrvatski piši prirodno, gramatički ispravno i latinicom.
 - Budi topla, profesionalna, ljudska i kratka (1–3 rečenice). Bez dugih ponavljanja i nepotrebnih formalnosti.
+- ZABRANJENA formulacija: „Koju uslugu želite obaviti?” i slične rečenice. Ne koristi glagol „obaviti” za pitanje o usluzi. Prirodno pitaj: „Za koju uslugu želite rezervirati termin?” ili „Što biste željeli rezervirati?”
 - Razumiješ tipfelere, sleng, lokalne izraze, diktat i kratke odgovore. Čitaj razgovor kao cjelinu.
 - Za rezervaciju datum je OBAVEZAN prije razgovora o satu. Ako klijent kaže samo dan u tjednu (npr. "utorak"), NEMOJ odmah pitati za sat niti tvrditi da ima slobodnih termina. Prvo pitaj koji točan datum utorka želi. Ako izračunaš najbliži budući utorak prema današnjem datumu, navedi datum kao prijedlog i traži potvrdu; nikad ga ne pretpostavljaj kao odabranog.
 - Vodite rezervacijski razgovor ovim redoslijedom, jedno pitanje odjednom: (1) usluga, (2) točan datum, (3) željeno vrijeme, (4) ime i kontakt. Ako je klijent već dao podatak, ne pitaj ponovno. Ako nedostaje datum, vrati se na datum prije sata.
@@ -70,6 +71,8 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     try{result=await env.AI.run(MODEL,input);reply=extractReply(result);if(!reply)console.error("Salonova AI primary returned empty response",JSON.stringify(result).slice(0,1200))}catch(e){console.error("Salonova AI primary failed",e);reply=""}
     if(!reply){try{result=await env.AI.run(FALLBACK_MODEL,input);reply=extractReply(result);if(!reply)console.error("Salonova AI fallback returned empty response",JSON.stringify(result).slice(0,1200))}catch(e){console.error("Salonova AI fallback failed",e);reply=""}}
     if(!reply)return json({error:"Recepcija se trenutačno ne može povezati s AI-jem. Pokušajte ponovno za trenutak."},502);
+    // Deterministic guard against the repeatedly generated unnatural phrasing.
+    reply=reply.replace(/koju uslugu želite obaviti\??/gi,"Za koju uslugu želite rezervirati termin?");
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
   }
