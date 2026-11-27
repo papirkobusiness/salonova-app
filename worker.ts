@@ -154,6 +154,18 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     if(/\b(?:zabilježen|zabilježena|zabilježeno|potvrđen|potvrđena|potvrđeno|rezerviran|rezervirana|rezervirano)\b|\bvidimo se\b/i.test(reply)){
       reply="Hvala vam! 😊 Sve podatke imamo u razgovoru, ali termin još nije službeno rezerviran. Rezervaciju možete dovršiti putem stranice salona.";
     }
+    // When name and phone are requested, recognize phone digits as contact data, never as a time.
+    const askedForContact=/ime.{0,35}(?:broj|mobitel|kontakt)|(?:broj|mobitel).{0,35}ime/i.test(priorAssistant);
+    const phoneMatch=latestUser.match(/(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/);
+    if(askedForContact&&phoneMatch){
+      const phoneDigits=phoneMatch[0].replace(/\\D/g,"");
+      const name=latestUser.replace(phoneMatch[0]," ").replace(/[+0-9]/g," ").replace(/[.,;:()/-]/g," ").replace(/\\s+/g," ").trim();
+      if(phoneDigits.length>=9&&phoneDigits.length<=12&&name.length>=2&&/[a-zA-ZčćžšđČĆŽŠĐ]/.test(name)){
+        reply="Hvala vam, "+name+"! 😊 Zabilježila sam ime i kontakt. Termin još nije službeno rezerviran jer ga recepcija u ovom razgovoru ne može upisati u kalendar. Rezervaciju možete dovršiti putem stranice salona.";
+      }else if(phoneDigits.length>=9&&phoneDigits.length<=12){
+        reply="Hvala vam! 😊 Broj mobitela sam prepoznala. Još mi samo napišite svoje ime.";
+      }
+    }
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
   }
