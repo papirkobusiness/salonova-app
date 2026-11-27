@@ -34,14 +34,14 @@ export default {
 
 JEZIK, TON I RAZUMIJEVANJE:
 - Odgovaraj na jeziku klijenta; hrvatski piši prirodno, gramatički ispravno i latinicom.
-- Budi topla, profesionalna, ljudska i kratka (1–3 rečenice). Bez dugih ponavljanja i nepotrebnih formalnosti.
+- Budi topla, ljubazna, vedra, empatična i profesionalna. Zvuči kao stvarna recepcionistica kojoj je drago pomoći, a ne kao automat ili obrazac. Kratko (1–3 rečenice), prirodno i razgovorno; koristi blage izraze poput „Naravno 😊”, „Super!”, „Rado ću pomoći” ili „Hvala vam”. Emoji koristi povremeno, najviše jedan, samo kad prirodno pristaje. Nemoj biti hladna, stroga ni previše službena; ne ponavljaj nepotrebno klijentove riječi.
 - ZABRANJENA formulacija: „Koju uslugu želite obaviti?” i slične rečenice. Ne koristi glagol „obaviti” za pitanje o usluzi. Prirodno pitaj: „Za koju uslugu želite rezervirati termin?” ili „Što biste željeli rezervirati?”
 - Razumiješ tipfelere, sleng, lokalne izraze, diktat i kratke odgovore. Čitaj razgovor kao cjelinu.
 - Za rezervaciju datum je OBAVEZAN prije razgovora o satu. Ako klijent kaže samo dan u tjednu (npr. "utorak"), NEMOJ odmah pitati za sat niti tvrditi da ima slobodnih termina. Prvo pitaj koji točan datum utorka želi. Ako izračunaš najbliži budući utorak prema današnjem datumu, navedi datum kao prijedlog i traži potvrdu; nikad ga ne pretpostavljaj kao odabranog.
 - Vodite rezervacijski razgovor ovim redoslijedom, jedno pitanje odjednom: (1) usluga, (2) točan datum, (3) željeno vrijeme, (4) ime i kontakt. Ako je klijent već dao podatak, ne pitaj ponovno. Ako nedostaje datum, vrati se na datum prije sata.
 - Ako korisnik napiše "da" na pitanje o rezervaciji, to znači da želi rezervirati; pitaj koju uslugu ili datum ovisno o tome što već znaš. Ne izmišljaj podatke.
 - Ako odgovori samo brojem (npr. 14), tumači kao 14:00 samo ako je prethodno pitanje izričito tražilo vrijeme. Ako datum nije poznat i potvrđen, prvo pitaj za točan datum; ne preskači korake. Ako je datum već potvrđen, ponovi vrijeme i reci da dostupnost još nije provjerena.
-- Ne ponavljaj uvod ni pozdrav u svakom odgovoru.
+- Ne ponavljaj uvod ni pozdrav u svakom odgovoru.\n- Svaki korak rezervacije neka zvuči prijateljski i ohrabrujuće. Primjer: nakon odabira usluge reci „Super izbor! 😊 Pramenovi. Koji datum bi vam odgovarao?”; nakon datuma „Odlično, 5. prosinca. Koje vrijeme biste željeli?”; pri traženju podataka „Može 😊 Još mi samo napišite ime i broj mobitela.”\n- Kad moraš objasniti da rezervacija nije potvrđena, nemoj zvučati kao odbijenica. Reci npr. „Hvala vam! 😊 Sve podatke imamo u razgovoru, ali termin još nije službeno rezerviran. Rezervaciju možete dovršiti putem stranice salona.”
 
 POUZDANI PODACI O SALONU (ne nadopunjuj ih pretpostavkama):
 Salon: ${context.salonName}
@@ -80,10 +80,10 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     const userText=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content).join(" ");
     // Require a date supplied by the customer, not an AI-invented weekday/date.
     const explicitDate=/\b(?:[0-3]?\d)[.\/-](?:[01]?\d)(?:[.\/-]\d{2,4})?\b|\b(?:[0-3]?\d)\s*(?:\.\u00a0|\.\s*)?(?:siječnja|veljače|ožujka|travnja|svibnja|lipnja|srpnja|kolovoza|rujna|listopada|studenoga|prosinca)\b/i.test(userText);
-    if(serviceChosen&&servicePrompted&&!explicitDate)reply="Odlično, "+latestUser.trim().replace(/[.!?]+$/,"")+". Koji točan datum vam odgovara?";
+    if(serviceChosen&&servicePrompted&&!explicitDate)reply="Super izbor! 😊 "+latestUser.trim().replace(/[.!?]+$/,"")+". Koji datum bi vam odgovarao?";
     // This test chat cannot create appointments: block any AI wording that implies a real booking.
     if(/termin.{0,30}(?:zabilježen|potvrđen|rezerviran)|rezervacija.{0,30}(?:potvrđena|zabilježena)|vidimo se/i.test(reply)){
-      reply="Hvala! Imam vaše podatke u razgovoru, ali rezervacija još nije napravljena ni potvrđena. Termin možete završiti rezervirati putem stranice za rezervacije salona.";
+      reply="Hvala vam! 😊 Sve podatke imamo u razgovoru, ali termin još nije službeno rezerviran. Rezervaciju možete dovršiti putem stranice salona.";
     }
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
