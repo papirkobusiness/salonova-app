@@ -127,7 +127,7 @@ function DashboardApp(){
      hours.default={days:scheduleDays.trim(),start:scheduleStart,end:scheduleEnd}
      const {error:saveError}=await supabase.from('salon_settings').upsert({salon_id:salon.id,business_hours:hours,public_profile:profile,updated_at:new Date().toISOString()},{onConflict:'salon_id'})
      if(saveError)throw saveError
-     setOwnerReply(`Radno vrijeme je spremljeno: ${scheduleDays}, ${scheduleStart}–${scheduleEnd}.`)
+
    }catch(e:any){setError(e.message||'Radno vrijeme nije spremljeno.')}finally{setScheduleBusy(false)}
  }
  function clientKey(client:any){
