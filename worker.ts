@@ -81,6 +81,10 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
     // Require a date supplied by the customer, not an AI-invented weekday/date.
     const explicitDate=/\\b(?:[0-3]?\\d)[.\\/-](?:[01]?\\d)(?:[.\\/-]\\d{2,4})?\\b|\\b(?:[0-3]?\\d)\\s*(?:\.\u00a0|\.\s*)?(?:siječnja|veljače|ožujka|travnja|svibnja|lipnja|srpnja|kolovoza|rujna|listopada|studenoga|prosinca)\\b/i.test(userText);
     if(serviceChosen&&servicePrompted&&!explicitDate)reply="Odlično, "+latestUser.trim().replace(/[.!?]+$/,"")+". Koji točan datum vam odgovara?";
+    // This test chat cannot create appointments: block any AI wording that implies a real booking.
+    if(/termin.{0,30}(?:zabilježen|potvrđen|rezerviran)|rezervacija.{0,30}(?:potvrđena|zabilježena)|vidimo se/i.test(reply)){
+      reply="Hvala! Imam vaše podatke u razgovoru, ali rezervacija još nije napravljena ni potvrđena. Termin možete završiti rezervirati putem stranice za rezervacije salona.";
+    }
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
   }
