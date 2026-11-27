@@ -95,6 +95,8 @@ KALENDAR ZA PROVJERU DANA (pouzdan popis; ne računaj sam): ${dateCalendar}`;
       if(dateObj.getFullYear()===year&&dateObj.getMonth()===month-1&&dateObj.getDate()===day){
         const weekdays=["nedjelja","ponedjeljak","utorak","srijeda","četvrtak","petak","subota"];
         const actualDay=weekdays[dateObj.getDay()];
+        if(dateObj.getDay()===0){reply=`6. ${month}. ${year}. je nedjelja, a salon nedjeljom ne radi. 😊 Možete li odabrati neki drugi datum?`;}
+
         const statedDay=latestUser.toLowerCase().match(/\b(nedjelja|ponedjeljak|utorak|srijeda|četvrtak|petak|subota)\b/);
         if(statedDay&&statedDay[1]!==actualDay){
           reply=`Samo da provjerimo 😊 ${day}. ${month}. ${year}. je ${actualDay}, a ne ${statedDay[1]}. Želite li rezervaciju za taj datum?`;
