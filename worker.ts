@@ -25,6 +25,22 @@ export default {
     if(!context.salonName||!Array.isArray(context.services)||messages.length===0)return json({error:"Nedostaju podaci razgovora."},400);
     const safeMessages=messages.filter((m:any)=>["user","assistant"].includes(m?.role)&&typeof m?.content==="string").map((m:any)=>({role:m.role,content:m.content.slice(0,1000)}));
     if(!safeMessages.length||safeMessages[safeMessages.length-1].role!=="user")return json({error:"Napišite pitanje za recepciju."},400);
+    // Fast path: when the receptionist has requested name and phone, process
+    // the contact locally instead of waiting for an AI generation.
+    const fastLatestUser=safeMessages[safeMessages.length-1].content;
+    const fastPriorAssistant=safeMessages.filter((m:any)=>m.role==="assistant").slice(-3).map((m:any)=>m.content).join(" ");
+    const fastAskedForContact=/(?:ime.{0,50}(?:broj|mobitel|kontakt)|(?:broj|mobitel|kontakt).{0,50}ime|ime\\s+i\\s+broj)/i.test(fastPriorAssistant);
+    const fastPhoneMatch=fastLatestUser.match(/(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/);
+    if(fastAskedForContact&&fastPhoneMatch){
+      const fastPhoneDigits=fastPhoneMatch[0].replace(/\\D/g,"");
+      const fastName=fastLatestUser.replace(fastPhoneMatch[0]," ").replace(/[+0-9]/g," ").replace(/[.,;:()/-]/g," ").replace(/\\s+/g," ").trim();
+      if(fastPhoneDigits.length>=9&&fastPhoneDigits.length<=12&&fastName.length>=2&&/[a-zA-ZčćžšđČĆŽŠĐ]/.test(fastName)){
+        return json({reply:"Hvala vam, "+fastName+"! 😊 Zabilježila sam ime i kontakt. Termin još nije službeno rezerviran jer ga recepcija u ovom razgovoru ne može upisati u kalendar. Rezervaciju možete dovršiti putem stranice salona."});
+      }
+      if(fastPhoneDigits.length>=9&&fastPhoneDigits.length<=12){
+        return json({reply:"Hvala vam! 😊 Broj mobitela sam prepoznala. Još mi samo napišite svoje ime."});
+      }
+    }
     const serviceFacts=context.services.slice(0,60).map((s:any)=>`• ${String(s.name||"Usluga").slice(0,100)} — ${Number(s.duration_minutes||0)} min — ${Number(s.price||0).toFixed(2)} EUR${s.description?"; "+String(s.description).slice(0,300):""}`).join("\n");
     const hours=context.businessHours?.default||{};
     const todayDate=new Date(new Intl.DateTimeFormat('en-CA',{timeZone:context.timezone||'Europe/Zagreb',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())+'T12:00:00');
