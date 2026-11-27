@@ -193,7 +193,15 @@ type PublicService = {id:string;name:string;duration_minutes:number;price:number
 type PublicSalon = {id:string;name:string;slug:string;timezone:string;phone?:string|null;services:PublicService[];staff:{id:string;name:string}[];business_hours?:{default?:{days?:string;start?:string;end?:string};[key:string]:any}}
 function localDate(d:Date){const x=new Date(d.getTime()-d.getTimezoneOffset()*60000);return x.toISOString().slice(0,10)}
 function ReceptionTestChat({salon,services,hours}:{salon:Salon;services:Service[];hours:any}) {
- const [messages,setMessages]=useState<{role:'user'|'assistant';content:string}[]>([{role:'assistant',content:`Pozdrav! Ja sam probna virtualna recepcija salona ${salon.name}. Pitajte me bilo što o uslugama, cijenama ili radnom vremenu.`}]);
+ const storageKey=`salonova-reception-test-${salon.id}`;
+ const greeting=`Pozdrav! Ja sam probna virtualna recepcija salona ${salon.name}. Pitajte me bilo što o uslugama, cijenama ili radnom vremenu.`;
+ const [messages,setMessages]=useState<{role:'user'|'assistant';content:string}[]>(()=>{
+   try{const saved=localStorage.getItem(storageKey);if(saved){const parsed=JSON.parse(saved);if(Array.isArray(parsed)&&parsed.length)return parsed}}catch{}
+   return [{role:'assistant',content:greeting}]
+ });
+ useEffect(()=>{try{localStorage.setItem(storageKey,JSON.stringify(messages))}catch{}},[messages,storageKey]);
+ const [input,setInput]=useState(''),[sending,setSending]=useState(false),[error,setError]=useState('');
+
  const [input,setInput]=useState(''),[sending,setSending]=useState(false),[error,setError]=useState('');
  async function send(){
   const text=input.trim();if(!text||sending)return;
