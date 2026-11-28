@@ -36,6 +36,54 @@ export default {
     if(!context.salonName||!Array.isArray(context.services)||messages.length===0)return json({error:"Nedostaju podaci razgovora."},400);
     const safeMessages=messages.filter((m:any)=>["user","assistant"].includes(m?.role)&&typeof m?.content==="string").map((m:any)=>({role:m.role,content:m.content.slice(0,1000)}));
     if(!safeMessages.length||safeMessages[safeMessages.length-1].role!=="user")return json({error:"Napišite pitanje za recepciju."},400);
+    // Existing confirmed bookings: cancellation requests are handled before new booking or rescheduling.
+    const cancellationTranscript=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content).join(" ");
+    const cancellationActive=/\\botkaz\\w*\\b/i.test(cancellationTranscript);
+    const cancellationPending=safeMessages.filter((m:any)=>m.role==="assistant").slice(-1)[0]?.content||"";
+    const cancellationAffirm=/^(da|moze|može|potvrdujem|potvrdi|u redu|ok|okej|naravno)$/i.test(safeMessages[safeMessages.length-1].content.trim());
+    const cancellationPhoneMatch=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content.match(/(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/)).filter(Boolean).slice(-1)[0];
+    const cancellationEmailMatch=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i)).filter(Boolean).slice(-1)[0];
+    const cancellationDateTime=(v:string)=>{
+      const d=v.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/);
+      const t=v.match(/\\b([01]?\\d|2[0-3]):([0-5]\\d)\\b|\\b([01]?\\d|2[0-3])\\s*(?:h|sati)\\b/i;
+      return {d,t};
+    };
+    if(cancellationActive){
+      if(!context.salonSlug)return json({reply:"Žao mi je, ne mogu pronaći salon za ovu rezervaciju. Molimo pokušajte preko stranice salona."});
+      if(!cancellationPhoneMatch)return json({reply:"Naravno, pomoći ću vam otkazati postojeći termin. 😊 Napišite ime i broj mobitela na koji glasi rezervacija."});
+      if(!cancellationEmailMatch)return json({reply:"Hvala! 😊 Još mi napišite e-mail adresu koju ste naveli prilikom rezervacije."});
+      const cancelPhone=cancellationPhoneMatch[0].trim(),cancelEmail=cancellationEmailMatch[0].toLowerCase();
+      const cancellationYear=Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(new Date()));
+      const pendingCancellation=/potvrditi otkazivanje|potvrdite otkazivanje|želite li otkazati rezervaciju/i.test(cancellationPending);
+      if(pendingCancellation&&cancellationAffirm){
+        const pd=cancellationPending.match(/(?:za|termin)\\s+(\\d{1,2})[.\\/]?(\\d{1,2})[.\\/]?(\\d{2,4})?\\.?\\s+(?:u\\s+)?(\\d{1,2}):(\\d{2})/i);
+        if(!pd)return json({reply:"Ne mogu pouzdano prepoznati rezervaciju za otkazivanje. Napišite datum i vrijeme termina."});
+        const py=pd[3]?Number(pd[3])<100?2000+Number(pd[3]):Number(pd[3]):cancellationYear;
+        const pdate=String(py).padStart(4,"0")+"-"+String(Number(pd[2])).padStart(2,"0")+"-"+String(Number(pd[1])).padStart(2,"0");
+        const ptime=String(Number(pd[4])).padStart(2,"0")+":"+pd[5]+":00";
+        try{
+          const cancelled=await supabaseRpc(env,"cancel_public_booking",{p_slug:context.salonSlug,p_phone:cancelPhone,p_client_email:cancelEmail,p_date:pdate,p_time:ptime});
+          if(cancelled?.status==="cancelled")return json({reply:"Gotovo! 😊 Vaša rezervacija za "+String(cancelled.service||"uslugu")+" "+pdate.split("-").reverse().join(".")+" u "+ptime.slice(0,5)+" uspješno je otkazana. Termin je oslobođen."});
+          return json({reply:"Ne mogu potvrditi otkazivanje. Rezervacija nije otkazana. Provjerite podatke ili se javite salonu izravno."});
+        }catch(err:any){console.error("Salonova cancellation RPC failed",err);return json({reply:"Žao mi je, otkazivanje trenutačno nije moguće spremiti. Vaša rezervacija ostaje aktivna. Pokušajte ponovno."});}
+      }
+      const latestCancellation=safeMessages[safeMessages.length-1].content;
+      const {d,t}=cancellationDateTime(latestCancellation);
+      let cDate:string|null=null,cTime:string|null=null;
+      if(d){const cy=d[3]?Number(d[3])<100?2000+Number(d[3]):Number(d[3]):cancellationYear;const dt=new Date(cy,Number(d[2])-1,Number(d[1]),12);if(dt.getFullYear()===cy&&dt.getMonth()===Number(d[2])-1&&dt.getDate()===Number(d[1]))cDate=String(cy).padStart(4,"0")+"-"+String(Number(d[2])).padStart(2,"0")+"-"+String(Number(d[1])).padStart(2,"0");}
+      if(t)cTime=String(Number(t[1]||t[3])).padStart(2,"0")+":"+String(Number(t[2]||0)).padStart(2,"0");
+      if(!cDate||!cTime){
+        return json({reply:"Pronaći ću vašu postojeću rezervaciju. 😊 Ako imate više termina, napišite datum i vrijeme koji želite otkazati (npr. 14.12.2026. u 10:00)."});
+      }
+      try{
+        const match=await supabaseRpc(env,"get_public_bookings_for_cancellation",{p_slug:context.salonSlug,p_phone:cancelPhone,p_client_email:cancelEmail,p_date:cDate,p_time:cTime+":00"});
+        if(match?.status==="not_found")return json({reply:"Ne mogu pronaći potvrđenu rezervaciju za "+cDate.split("-").reverse().join(".")+" u "+cTime+" s tim brojem mobitela i e-mailom. Provjerite podatke; ništa nije otkazano."});
+        if(match?.status==="multiple")return json({reply:"Pronašla sam više rezervacija. 😊 Napišite točan datum i vrijeme termina koji želite otkazati."});
+        if(match?.status!=="found")return json({reply:"Trenutačno ne mogu provjeriti rezervaciju. Ništa nije otkazano. Pokušajte ponovno."});
+        const cb=match.booking||{},service=String(cb.service||"rezerviranu uslugu");
+        return json({reply:"Pronašla sam vašu rezervaciju za "+service+" "+cDate.split("-").reverse().join(".")+" u "+cTime+". 😊 Želite li potvrditi otkazivanje? Odgovorite DA. Rezervacija ostaje aktivna dok ne potvrdite."});
+      }catch(err:any){console.error("Salonova cancellation lookup failed",err);return json({reply:"Žao mi je, trenutačno ne mogu provjeriti postojeću rezervaciju. Ništa nije otkazano. Pokušajte ponovno."});}
+    }
     // Existing confirmed bookings: handle reschedule requests before the new-booking flow.
     const allUserMessages=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content);
     const allAssistantMessages=safeMessages.filter((m:any)=>m.role==="assistant").map((m:any)=>m.content);
