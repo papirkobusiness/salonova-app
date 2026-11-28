@@ -65,7 +65,7 @@ export default {
         if(found?.status==="not_found")return json({reply:"Nažalost, ne mogu pronaći potvrđenu rezervaciju s tim podacima. 😊 Provjerite stari datum, vrijeme, broj mobitela i e-mail adresu koju ste koristili pri rezervaciji."});
         if(found?.status==="already_changed")return json({reply:"Ovu rezervaciju već smo jednom promijenili. 😊 Dodatna promjena nije moguća. Molimo javite se salonu izravno."});
         if(found?.status!=="found")return json({reply:"Trenutačno ne mogu provjeriti rezervaciju. Vaš postojeći termin nije promijenjen. Pokušajte ponovno."});
-        if(/potvrditi promjenu rezervacije/i.test(pendingReschedule)&&/^(da|moze|može|potvrdujem|potvrdi|u redu|ok|okej|naravno)$/i.test(latestMessage.trim())){
+        if(/potvrditi promjenu(?: rezervacije)?/i.test(pendingReschedule)&&/^(da|moze|može|potvrdujem|potvrdi|u redu|ok|okej|naravno)$/i.test(latestMessage.trim())){
           const pendingDate=pendingReschedule.match(/na\s+(\d{1,2})[.\/]?(\d{1,2})[.\/]?(\d{2,4})?\.?\s+u\s+(\d{1,2}):(\d{2})/i);
           if(!pendingDate)return json({reply:"Molim vas napišite novi datum i vrijeme još jednom, u obliku 18.12.2026. u 11:00."});
           const yr=pendingDate[3]?Number(pendingDate[3])<100?2000+Number(pendingDate[3]):Number(pendingDate[3]):yearNow;
