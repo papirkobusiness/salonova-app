@@ -117,34 +117,42 @@ export default {
         }
         return json({reply:"Hvala vam, "+fastName+"! 😊 Još mi samo napišite e-mail adresu kako bismo provjerili dostupnost i dovršili rezervaciju."});
       }
-      const fastTranscript=fastUserTexts.join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-      const fastAssistantTranscript=safeMessages.filter((m:any)=>m.role==="assistant").map((m:any)=>m.content).join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+      const normalizeBookingText=(v:string)=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+      const fastTranscript=normalizeBookingText(fastUserTexts.join(" "));
+      const fastAssistantTexts=safeMessages.filter((m:any)=>m.role==="assistant").map((m:any)=>m.content);
+      const fastAssistantTranscript=normalizeBookingText(fastAssistantTexts.join(" "));
       const fastServices=(context.services||[]).filter((s:any)=>s?.name&&s?.id);
       const fastChosenService=fastServices.find((s:any)=>{
-        const n=String(s.name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+        const n=normalizeBookingText(String(s.name));
         if(fastTranscript.includes(n))return true;
         if(/musko|male|barber/.test(n)&&/musko|muski|barber/.test(fastTranscript))return true;
         if(/zensko|female/.test(n)&&/zensko|zena/.test(fastTranscript))return true;
         if(/pramen|highlight/.test(n)&&/pramen|highlight/.test(fastTranscript))return true;
         return fastAssistantTranscript.includes(n)||fastAssistantTranscript.includes(n.replace(/sisanje/g,"").trim());
       });
-      const dateMatches=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/g)));
-      const dateMatch=dateMatches[dateMatches.length-1]||null;
+      // Read the latest selected date from the whole transcript, including the assistant's date confirmation.
+      const dateSources=safeMessages.map((m:any)=>m.content);
+      const datePattern=/(?:^|\\b)([0-3]?\\d)\\s*[.\\/-]\\s*([01]?\\d)(?:\\s*[.\\/-]\\s*(\\d{2,4}))?/g;
+      const dateCandidates=dateSources.flatMap((t:string)=>Array.from(t.matchAll(datePattern)));
+      const dateMatch=dateCandidates[dateCandidates.length-1]||null;
       let fastDate="";
       if(dateMatch){
         const day=Number(dateMatch[1]),month=Number(dateMatch[2]),now=new Date();
-        const year=dateMatch[3]?(Number(dateMatch[3])<100?2000+Number(dateMatch[3]):Number(dateMatch[3])):Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(now));
+        const currentYear=Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(now));
+        const year=dateMatch[3]?(Number(dateMatch[3])<100?2000+Number(dateMatch[3]):Number(dateMatch[3])):currentYear;
         const candidate=new Date(year,month-1,day,12);
-        if(candidate.getDate()===day&&candidate.getMonth()===month-1){
+        if(candidate.getFullYear()===year&&candidate.getMonth()===month-1&&candidate.getDate()===day){
           const todayText=new Intl.DateTimeFormat("en-CA",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric",month:"2-digit",day:"2-digit"}).format(now);
           const todayDate=new Date(todayText+"T12:00:00");
           const resolvedYear=!dateMatch[3]&&candidate<todayDate?year+1:year;
           fastDate=new Date(resolvedYear,month-1,day,12).toISOString().slice(0,10);
         }
       }
-      const explicitTimes=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b/gi)));
+      // Use explicit clock times in the assistant's confirmations, otherwise a bare hour from the user.
+      const clockPattern=/\\b([01]?\\d|2[0-3]):([0-5]\\d)\\b|\\b([01]?\\d|2[0-3])\\s*(?:h|sati)\\b/gi;
+      const explicitTimes=dateSources.flatMap((t:string)=>Array.from(t.matchAll(clockPattern)));
       const explicitTime=explicitTimes[explicitTimes.length-1]||null;
-      const bareHours=fastUserTexts.filter((t:string)=>/^\s*([01]?\d|2[0-3])\s*$/.test(t));
+      const bareHours=fastUserTexts.filter((t:string)=>/^\\s*([01]?\\d|2[0-3])\\s*$/.test(t));
       const fastBareHour=bareHours.length?bareHours[bareHours.length-1]:null;
       const fastHour=explicitTime?Number(explicitTime[1]||explicitTime[3]):fastBareHour!==null?Number(fastBareHour.trim()):null;
       const fastMinute=explicitTime?Number(explicitTime[2]||0):0;
