@@ -365,9 +365,9 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
     }
     // Keep an existing-booking change request out of the new-booking flow.
     // The test chat may not contain the original confirmation, so never guess which booking to change.
-    const oldBookingDetailsPrompt = /stari datum i vrijeme|stari datum.*vrijeme|trenutni datum rezervacije/i.test(priorAssistant);
-    const oldDateInLatest = latestUser.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/);
-    const oldClockInLatest = latestUser.match(/\\b([01]?\\d|2[0-3]):([0-5]\\d)\\b|^\\s*([01]?\\d|2[0-3])\\s*$/);
+    const oldBookingDetailsPrompt = /stari datum i vrijeme|stari datum.*vrijeme|trenutni datum rezervacije|datum i točno vrijeme trenutno imate rezervirano|datum i vrijeme trenutno imate rezervirano/i.test(priorAssistant);
+    const oldDateInLatest = latestUser.match(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/);
+    const oldClockInLatest = latestUser.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b|^\s*([01]?\d|2[0-3])\s*$/);
     if (oldBookingDetailsPrompt && oldDateInLatest && oldClockInLatest) {
       const oldHour = Number(oldClockInLatest[1] || oldClockInLatest[3]);
       const oldMinute = Number(oldClockInLatest[2] || 0);
