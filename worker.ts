@@ -106,7 +106,16 @@ export default {
     const fastName=fastPhoneMatch?fastContactMessage.replace(fastPhoneMatch[0]," ").replace(/[+0-9]/g," ").replace(/[.,;:()/-]/g," ").replace(/\s+/g," ").trim():"";
     if(fastAskedForContact&&fastPhoneMatch&&fastPhoneDigits.length>=9&&fastPhoneDigits.length<=12&&fastName.length>=2&&/[a-zA-ZčćžšđČĆŽŠĐ]/.test(fastName)){
       if(!fastEmailMatch){
-        return json({reply:"Hvala vam, "+fastName+"! 😊 Još mi samo napišite e-mail adresu kako bismo mogli potvrditi rezervaciju i poslati podsjetnik."});
+        const changedDateMatch=fastLatestUser.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/);
+        if(changedDateMatch){
+          const day=Number(changedDateMatch[1]),month=Number(changedDateMatch[2]),year=changedDateMatch[3]?(Number(changedDateMatch[3])<100?2000+Number(changedDateMatch[3]):Number(changedDateMatch[3])):Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(new Date()));
+          const d=new Date(year,month-1,day,12);
+          if(d.getFullYear()===year&&d.getMonth()===month-1&&d.getDate()===day){
+            const dateLabel=String(day).padStart(2,"0")+"."+String(month).padStart(2,"0")+"."+year;
+            return json({reply:"Razumijem 😊 Želite termin "+dateLabel+". Taj datum još treba provjeriti i rezervacija nije potvrđena. Još mi samo napišite e-mail adresu kako bismo provjerili dostupnost i dovršili rezervaciju."});
+          }
+        }
+        return json({reply:"Hvala vam, "+fastName+"! 😊 Još mi samo napišite e-mail adresu kako bismo provjerili dostupnost i dovršili rezervaciju."});
       }
       const fastTranscript=fastUserTexts.join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
       const fastServices=(context.services||[]).filter((s:any)=>s?.name&&s?.id);
