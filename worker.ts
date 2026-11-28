@@ -42,15 +42,16 @@ export default {
     const latestMessage=allUserMessages[allUserMessages.length-1]||"";
     const pendingReschedule=allAssistantMessages[allAssistantMessages.length-1]||"";
     // A reschedule request must take priority over service selection and the new-booking assistant.
-    const normalizeReschedule=(v:string)=>String(v||"").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\\s+/g," ").trim();
+    const normalizeReschedule=(v:string)=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
     const rescheduleTranscript=normalizeReschedule(allUserMessages.join(" "));
-    const rescheduleRequestActive=/\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*)\\b.*\\b(termin\\w*|rezervacij\\w*)\\b|\\b(termin\\w*|rezervacij\\w*)\\b.*\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*)\\b/i.test(rescheduleTranscript);
+    const rescheduleRequestActive=/\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*)\b.*\b(termin\w*|rezervacij\w*)\b|\b(termin\w*|rezervacij\w*)\b.*\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*)\b/i.test(rescheduleTranscript);
     if(rescheduleRequestActive){
-      const rescheduleDateTime=/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?[^\\n]{0,20}\\b([01]?\\d|2[0-3])(?::([0-5]\\d)|\\s*(?:h|sati))?/i.test(allUserMessages.join(" "));
-      const reschedulePhone=/(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/.test(allUserMessages.join(" "));
-      const rescheduleEmail=/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i.test(allUserMessages.join(" "));
+      const transcriptText=allUserMessages.join(" ");
+      const rescheduleDateTime=/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?[^\n]{0,20}\b([01]?\d|2[0-3])(?::([0-5]\d)|\s*(?:h|sati))?/i.test(transcriptText);
+      const reschedulePhone=/(?:\+?385[\s./-]*|0)[0-9\s./()-]{7,16}/.test(transcriptText);
+      const rescheduleEmail=/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(transcriptText);
       if(!rescheduleDateTime){
-        return json({reply:"Naravno, pomoći ću vam promijeniti postojeći termin. 😊 Najprije mi napišite stari datum i vrijeme rezervacije (npr. 16.12. u 10:00). Ovo nije nova rezervacija."});
+        return json({reply:"Naravno, pomoći ću vam promijeniti postojeći termin. 😊 Napišite stari datum i vrijeme rezervacije (npr. 16.12. u 10:00). Ovo nije nova rezervacija."});
       }
       if(!reschedulePhone){
         return json({reply:"Hvala! 😊 Zabilježila sam stari termin. Sada napišite ime i broj mobitela na koji glasi postojeća rezervacija."});
@@ -58,7 +59,7 @@ export default {
       if(!rescheduleEmail){
         return json({reply:"Hvala! 😊 Još mi napišite e-mail adresu koju ste naveli prilikom postojeće rezervacije kako bismo je mogli sigurno pronaći."});
       }
-      return json({reply:"Hvala vam, zaprimila sam podatke za promjenu postojeće rezervacije. 😊 Još neću mijenjati termin dok se postojeća rezervacija ne pronađe i ne provjeri. Za dovršetak promjene potrebna je dodatna provjera rezervacije."});
+      return json({reply:"Hvala vam, zaprimila sam podatke za promjenu postojeće rezervacije. 😊 Još neću mijenjati termin dok se postojeća rezervacija ne pronađe i ne provjeri."});
     }
     const confirmedText=[...allAssistantMessages].reverse().find((t:string)=>/rezervacija je potvrđena|vaša rezervacija je potvrđena/i.test(t))||"";
     const bookingMatch=confirmedText.match(/potvrđena za\s+(\d{1,2})[.\/]?(\d{1,2})[.\/]?(\d{2,4})?\.?\s+u\s+(\d{1,2}):(\d{2})\s+za\s+(.+?)(?:\.|$)/i);
@@ -393,22 +394,6 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
       const oldDateLabel = oldDateInLatest[1] + "." + oldDateInLatest[2] + (oldDateInLatest[3] ? "." + oldDateInLatest[3] : ".");
       const oldTimeLabel = String(oldHour).padStart(2, "0") + ":" + String(oldMinute).padStart(2, "0");
       reply = "Hvala! 😊 Zabilježila sam da želite promijeniti postojeću rezervaciju od " + oldDateLabel + " u " + oldTimeLabel + ". Kako ne bih slučajno otvorila novu rezervaciju ili promijenila pogrešan termin, otvorite razgovor u kojem ste dobili potvrdu rezervacije i ondje napišite novi termin. Vaša postojeća rezervacija zasad ostaje nepromijenjena.";
-    }
-    // Rescheduling is a separate flow: detect the intent across the whole chat and never start a new booking.
-    const rescheduleConversationText = allUserMessages.join(" ");
-    const normalizedRescheduleText = normalize(rescheduleConversationText);
-    const rescheduleRequestActive = /\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*)\\b.*\\b(termin\\w*|rezervacij\\w*)\\b|\\b(termin\\w*|rezervacij\\w*)\\b.*\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*)\\b/i.test(normalizedRescheduleText);
-    if (rescheduleRequestActive) {
-      const phoneInConversation = /(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/.test(rescheduleConversationText);
-      const emailInConversation = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i.test(rescheduleConversationText);
-      const oldDateAndTimeInConversation = /(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-]\\d{2,4})?[^\\n]{0,20}\\b([01]?\\d|2[0-3])(?::([0-5]\\d)|\\s*(?:h|sati))?/i.test(rescheduleConversationText);
-      if (!phoneInConversation) {
-        reply = "Razumijem, želite promijeniti postojeći termin. 😊 Napišite ime i broj mobitela na koji glasi rezervacija. Neću otvoriti novu rezervaciju.";
-      } else if (!emailInConversation) {
-        reply = "Hvala! 😊 Broj mobitela sam zaprimila. Napišite još e-mail adresu koju ste naveli prilikom postojeće rezervacije kako bih mogla provjeriti termin.";
-      } else if (!oldDateAndTimeInConversation) {
-        reply = "Hvala! 😊 Sada mi napišite stari datum i vrijeme postojeće rezervacije (npr. 16.12. u 10:00).";
-      }
     }
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
