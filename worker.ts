@@ -121,14 +121,14 @@ export default {
       const fastAssistantTranscript=safeMessages.filter((m:any)=>m.role==="assistant").map((m:any)=>m.content).join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
       const fastServices=(context.services||[]).filter((s:any)=>s?.name&&s?.id);
       const fastChosenService=fastServices.find((s:any)=>{
-        const n=String(s.name).toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
+        const n=String(s.name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
         if(fastTranscript.includes(n))return true;
         if(/musko|male|barber/.test(n)&&/musko|muski|barber/.test(fastTranscript))return true;
         if(/zensko|female/.test(n)&&/zensko|zena/.test(fastTranscript))return true;
         if(/pramen|highlight/.test(n)&&/pramen|highlight/.test(fastTranscript))return true;
         return fastAssistantTranscript.includes(n)||fastAssistantTranscript.includes(n.replace(/sisanje/g,"").trim());
       });
-      const dateMatches=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/g)));
+      const dateMatches=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/g)));
       const dateMatch=dateMatches[dateMatches.length-1]||null;
       let fastDate="";
       if(dateMatch){
@@ -144,7 +144,7 @@ export default {
       }
       const explicitTimes=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b/gi)));
       const explicitTime=explicitTimes[explicitTimes.length-1]||null;
-      const bareHours=fastUserTexts.filter((t:string)=>/^\\s*([01]?\\d|2[0-3])\\s*$/.test(t));
+      const bareHours=fastUserTexts.filter((t:string)=>/^\s*([01]?\d|2[0-3])\s*$/.test(t));
       const fastBareHour=bareHours.length?bareHours[bareHours.length-1]:null;
       const fastHour=explicitTime?Number(explicitTime[1]||explicitTime[3]):fastBareHour!==null?Number(fastBareHour.trim()):null;
       const fastMinute=explicitTime?Number(explicitTime[2]||0):0;
