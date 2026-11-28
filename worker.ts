@@ -118,7 +118,7 @@ export default {
         return json({reply:"Hvala vam, "+fastName+"! 😊 Još mi samo napišite e-mail adresu kako bismo provjerili dostupnost i dovršili rezervaciju."});
       }
       const fastTranscript=fastUserTexts.join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-      const fastAssistantTranscript=safeMessages.filter((m:any)=>m.role==="assistant").map((m:any)=>m.content).join(" ").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
+      const fastAssistantTranscript=safeMessages.filter((m:any)=>m.role==="assistant").map((m:any)=>m.content).join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
       const fastServices=(context.services||[]).filter((s:any)=>s?.name&&s?.id);
       const fastChosenService=fastServices.find((s:any)=>{
         const n=String(s.name).toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
