@@ -243,7 +243,18 @@ function PublicBooking({slug}:{slug:string}){
  function chooseService(s:PublicService){setService(s.id);setDate('');setSlot('');setShowServices(false);setConfirmed(null);setMessages(m=>[...m,{role:'user',text:`Želim rezervirati ${s.name}.`},{role:'assistant',text:`Odlično! ${s.name} traje ${s.duration_minutes} minuta${s.price>0?` i košta ${money(s.price)}`:''}. Sada odaberite zeleni dan u kalendaru, a zatim slobodan sat.`}])}
  async function ask(text?:string){
    const q=(text??question).trim();if(!q||!salon)return
-   const n=q.toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+   const n=q.toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')
+   // Route cancellation requests from the public booking chat to the Worker cancellation handler.
+   const publicCancelTranscript=[...messages.map(m=>m.text),q].join(' ').toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')
+   if(/\\botkaz\\w*\\b/.test(publicCancelTranscript)){
+     const transcript=[...messages.map(m=>({role:m.role,content:m.text})),{role:'user',content:q}].slice(-12)
+     try{
+       const response=await fetch('/api/reception',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({context:{salonName:salon.name,salonSlug:slug,services:salon.services.map(s=>({id:s.id,name:s.name,duration_minutes:s.duration_minutes,price:s.price})),businessHours:salon.business_hours,timezone:salon.timezone||'Europe/Zagreb'},messages:transcript})})
+       const data=await response.json()
+       if(!response.ok)throw new Error(data?.error||'Virtualna recepcija trenutačno ne odgovara.')
+       setMessages(m=>[...m,{role:'user',text:q},{role:'assistant',text:data.reply||'Oprostite, nisam uspjela sastaviti odgovor.'}]);setQuestion('');return
+     }catch(e:any){setMessages(m=>[...m,{role:'user',text:q},{role:'assistant',text:e.message||'Otkazivanje trenutačno nije dostupno. Pokušajte ponovno.'}]);setQuestion('');return}
+   }
    let answer='Mogu vam pomoći s rezervacijom, uslugama, cijenama i radnim vremenom. Napišite što vas zanima.'
    const monthAliases:Record<string,number>={
      sijecnja:0,sijecanj:0,veljace:1,veljaca:1,ozujka:2,ozujak:2,travnja:3,travanj:3,
