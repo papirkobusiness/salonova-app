@@ -245,8 +245,8 @@ function PublicBooking({slug}:{slug:string}){
    const q=(text??question).trim();if(!q||!salon)return
    const n=q.toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
    // Route the latest explicit intent first; a customer may switch from cancellation to rescheduling.
-   const publicRescheduleIntent=/\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*|drugi termin|novi termin|novi datum|datum)\b/.test(n)
-   const publicCancelTranscript=[...messages.map(m=>m.text),q].join(' ').toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    const publicCancelTranscript=[...messages.map(m=>m.text),q].join(' ').toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    const publicRescheduleIntent=/\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*|drugi termin|novi termin|novi datum|datum)\b/.test(n)||/\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*|drugi termin|novi termin|novi datum)\b/.test(publicCancelTranscript)
    if(!publicRescheduleIntent&&/\botkaz\w*\b/.test(publicCancelTranscript)){
      const transcript=[...messages.map(m=>({role:m.role,content:m.text})),{role:'user',content:q}].slice(-12)
      try{
