@@ -44,11 +44,11 @@ export default {
     const cancellationPhoneMatch=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content.match(/(?:\+?385[\s./-]*|0)[0-9\s./()-]{7,16}/)).filter(Boolean).slice(-1)[0];
     const cancellationEmailMatch=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)).filter(Boolean).slice(-1)[0];
     const cancellationDateTime=(v:string)=>{
-      const d=v.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/);
+      const d=v.match(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/);
       let t:any=null;
       if(d){
-        const afterDate=v.slice((d.index||0)+d[0].length).trim().replace(/^u\\s*/i,"");
-        const clock=afterDate.match(/^([01]?\\d|2[0-3])(?::([0-5]\\d))?\\s*(?:h|sati)?\\b/i);
+        const afterDate=v.slice((d.index||0)+d[0].length).trim().replace(/^u\s*/i,"");
+        const clock=afterDate.match(/^([01]?\d|2[0-3])(?::([0-5]\d))?\s*(?:h|sati)?\b/i);
         if(clock)t={hour:clock[1],minute:clock[2]||"00"};
       }
       return {d,t};
@@ -76,7 +76,7 @@ export default {
       const {d,t}=cancellationDateTime(latestCancellation);
       let cDate:string|null=null,cTime:string|null=null;
       if(d){const cy=d[3]?Number(d[3])<100?2000+Number(d[3]):Number(d[3]):cancellationYear;const dt=new Date(cy,Number(d[2])-1,Number(d[1]),12);if(dt.getFullYear()===cy&&dt.getMonth()===Number(d[2])-1&&dt.getDate()===Number(d[1]))cDate=String(cy).padStart(4,"0")+"-"+String(Number(d[2])).padStart(2,"0")+"-"+String(Number(d[1])).padStart(2,"0");}
-      if(t)cTime=String(Number(t.hour)).padStart(2,"0")+":"+String(t[2]||"00").padStart(2,"0");
+      if(t)cTime=String(Number(t.hour)).padStart(2,"0")+":"+String(t.minute||"00").padStart(2,"0");
       if(!cDate||!cTime){
         return json({reply:"Pronaći ću vašu postojeću rezervaciju. 😊 Ako imate više termina, napišite datum i vrijeme koji želite otkazati (npr. 14.12.2026. u 10:00)."});
       }
