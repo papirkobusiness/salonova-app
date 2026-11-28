@@ -45,7 +45,7 @@ export default {
     const cancellationEmailMatch=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)).filter(Boolean).slice(-1)[0];
     const cancellationDateTime=(v:string)=>{
       const d=v.match(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/);
-      const t=v.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b|\bu\s*([01]?\d|2[0-3])\b/i);
+      const t=v.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b|\bu\s*([01]?\d|2[0-3])\b|\s+([01]?\d|2[0-3])\b/i);
       return {d,t};
     };
     if(cancellationActive){
@@ -60,7 +60,7 @@ export default {
         if(!d||!t)return json({reply:"Ne mogu pouzdano prepoznati rezervaciju za otkazivanje. Napišite datum i vrijeme termina."});
         const py=d[3]?Number(d[3])<100?2000+Number(d[3]):Number(d[3]):cancellationYear;
         const pdate=String(py).padStart(4,"0")+"-"+String(Number(d[2])).padStart(2,"0")+"-"+String(Number(d[1])).padStart(2,"0");
-        const ptime=String(Number(t[1]||t[3]||t[4])).padStart(2,"0")+":"+String(t[2]||"00")+":00";
+        const ptime=String(Number(t[1]||t[3]||t[4]||t[5])).padStart(2,"0")+":"+String(t[2]||"00")+":00";
         try{
           const cancelled=await supabaseRpc(env,"cancel_public_booking",{p_slug:context.salonSlug,p_phone:cancelPhone,p_client_email:cancelEmail,p_date:pdate,p_time:ptime});
           if(cancelled?.status==="cancelled")return json({reply:"Gotovo! 😊 Vaša rezervacija za "+String(cancelled.service||"uslugu")+" "+pdate.split("-").reverse().join(".")+" u "+ptime.slice(0,5)+" uspješno je otkazana. Termin je oslobođen."});
