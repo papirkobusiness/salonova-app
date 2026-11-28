@@ -32,10 +32,67 @@ export default {
    try{
     const body=await request.json() as any;
     const context=body?.context||{};
-    const messages=Array.isArray(body?.messages)?body.messages.slice(-8):[];
+    const messages=Array.isArray(body?.messages)?body.messages.slice(-30):[];
     if(!context.salonName||!Array.isArray(context.services)||messages.length===0)return json({error:"Nedostaju podaci razgovora."},400);
     const safeMessages=messages.filter((m:any)=>["user","assistant"].includes(m?.role)&&typeof m?.content==="string").map((m:any)=>({role:m.role,content:m.content.slice(0,1000)}));
     if(!safeMessages.length||safeMessages[safeMessages.length-1].role!=="user")return json({error:"Napišite pitanje za recepciju."},400);
+    // Existing confirmed bookings: handle reschedule requests before the new-booking flow.
+    const allUserMessages=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content);
+    const allAssistantMessages=safeMessages.filter((m:any)=>m.role==="assistant").map((m:any)=>m.content);
+    const latestMessage=allUserMessages[allUserMessages.length-1]||"";
+    const pendingReschedule=allAssistantMessages[allAssistantMessages.length-1]||"";
+    const confirmedText=[...allAssistantMessages].reverse().find((t:string)=>/rezervacija je potvrđena|vaša rezervacija je potvrđena/i.test(t))||"";
+    const bookingMatch=confirmedText.match(/potvrđena za\s+(\d{1,2})[.\/]?(\d{1,2})[.\/]?(\d{2,4})?\s+u\s+(\d{1,2}):(\d{2})\s+za\s+(.+?)(?:\.|$)/i);
+    const contactEmail=allUserMessages.map((t:string)=>t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)).filter(Boolean).slice(-1)[0]?.[0]||"";
+    const contactPhone=allUserMessages.map((t:string)=>t.match(/(?:\+?385[\s./-]*|0)[0-9\s./()-]{7,16}/)).filter(Boolean).slice(-1)[0]?.[0]?.trim()||"";
+    const rescheduleIntent=/\b(promijen|promjen|izmjen|pomakn|prebac|drugi termin|novi termin|ipak|moze ipak|može ipak)\b/i.test(latestMessage);
+    const pendingConfirm=/potvrditi promjenu rezervacije/i.test(pendingReschedule);
+    const affirm=/^(da|moze|može|potvrdujem|potvrdi|u redu|ok|okej|naravno)$/i.test(latestMessage.trim());
+    const normalizeServiceName=(v:string)=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"");
+    if(bookingMatch&&context.salonSlug&&contactEmail&&contactPhone){
+      const oldDay=Number(bookingMatch[1]),oldMonth=Number(bookingMatch[2]),oldYear=bookingMatch[3]?Number(bookingMatch[3]):Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(new Date()));
+      const oldDate=String(oldYear<100?2000+oldYear:oldYear).padStart(4,"0")+"-"+String(oldMonth).padStart(2,"0")+"-"+String(oldDay).padStart(2,"0");
+      const oldTime=String(bookingMatch[4]).padStart(2,"0")+":"+bookingMatch[5];
+      const serviceLabel=bookingMatch[6].trim();
+      const resService=(context.services||[]).find((s:any)=>normalizeServiceName(String(s.name))===normalizeServiceName(serviceLabel))||(context.services||[]).find((s:any)=>normalizeServiceName(serviceLabel).includes(normalizeServiceName(String(s.name))));
+      const requestedDateMatch=latestMessage.match(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/);
+      const explicitClock=latestMessage.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b/i);
+      const newTime=explicitClock?String(Number(explicitClock[1]||explicitClock[3])).padStart(2,"0")+":"+String(Number(explicitClock[2]||0)).padStart(2,"0"):oldTime;
+      const targetDate=(()=>{
+        if(!requestedDateMatch)return "";
+        const day=Number(requestedDateMatch[1]),month=Number(requestedDateMatch[2]),year=requestedDateMatch[3]?Number(requestedDateMatch[3])<100?2000+Number(requestedDateMatch[3]):Number(requestedDateMatch[3]):oldYear;
+        const d=new Date(year,month-1,day,12);if(d.getFullYear()!==year||d.getMonth()!==month-1||d.getDate()!==day)return "";
+        return d.toISOString().slice(0,10);
+      })();
+      if(pendingConfirm&&affirm){
+        const pendingDate=pendingReschedule.match(/na\s+(\d{1,2})[.\/]?(\d{1,2})[.\/]?(\d{2,4})?\s+u\s+(\d{1,2}):(\d{2})/i);
+        if(pendingDate){
+          const yr=pendingDate[3]?Number(pendingDate[3])<100?2000+Number(pendingDate[3]):Number(pendingDate[3]):oldYear;
+          const nd=String(yr).padStart(4,"0")+"-"+String(Number(pendingDate[2])).padStart(2,"0")+"-"+String(Number(pendingDate[1])).padStart(2,"0");
+          const nt=String(Number(pendingDate[4])).padStart(2,"0")+":"+pendingDate[5];
+          try{
+            const changed=await supabaseRpc(env,"reschedule_public_booking",{p_slug:context.salonSlug,p_phone:contactPhone,p_client_email:contactEmail,p_old_date:oldDate,p_old_time:oldTime+":00",p_new_date:nd,p_new_time:nt+":00"});
+            if(changed?.status==="rescheduled")return json({reply:"Gotovo! 😊 Vaša rezervacija je promijenjena na "+nd.split("-").reverse().join(".")+" u "+nt+". Ovo je jedina dopuštena promjena termina. Potvrda i podsjetnik bit će ažurirani."});
+            if(changed?.status==="already_changed")return json({reply:"Ovu rezervaciju već smo jednom promijenili. 😊 Dodatna promjena termina nije moguća. Molimo javite se salonu izravno."});
+            if(changed?.status==="unavailable")return json({reply:"Nažalost, taj termin više nije dostupan. Vaša postojeća rezervacija ostaje nepromijenjena. 😊"});
+            return json({reply:"Ne mogu potvrditi promjenu rezervacije. Provjerite podatke ili se javite salonu izravno."});
+          }catch(err:any){console.error("Salonova reschedule RPC failed",err);return json({reply:"Žao mi je, promjenu trenutačno ne mogu spremiti. Termin nije promijenjen. Molimo javite se salonu ili pokušajte kasnije."});}
+        }
+      }
+      if(rescheduleIntent&&requestedDateMatch&&targetDate&&resService){
+        if(targetDate===oldDate&&newTime===oldTime)return json({reply:"To je već vaš postojeći termin 😊 Napišite drugi datum ili vrijeme koje želite promijeniti."});
+        try{
+          const slots=await supabaseRpc(env,"get_public_slots",{p_slug:context.salonSlug,p_service_id:resService.id,p_date:targetDate});
+          const isSameDate=targetDate===oldDate;
+          const isFree=isSameDate?true:(Array.isArray(slots)?slots.some((s:any)=>String(s.slot_time||s).slice(0,5)===newTime):false);
+          if(!isFree){
+            const free=(Array.isArray(slots)?slots:[]).map((s:any)=>String(s.slot_time||s).slice(0,5));
+            return json({reply:free.length?"Taj termin je zauzet. 😊 Slobodni termini tog dana su: "+free.join(", ")+". Koji vam odgovara?":"Za taj datum nema slobodnih termina. Želite li odabrati drugi datum?"});
+          }
+          return json({reply:"Naravno! 😊 Mogu pokušati promijeniti vašu postojeću rezervaciju s "+oldDate.split("-").reverse().join(".")+" u "+oldTime+" na "+targetDate.split("-").reverse().join(".")+" u "+newTime+". Želite li potvrditi promjenu rezervacije?"});
+        }catch(err:any){console.error("Salonova reschedule availability failed",err);return json({reply:"Trenutačno ne mogu provjeriti novi termin. Vaša postojeća rezervacija ostaje nepromijenjena. Pokušajte ponovno malo kasnije."});}
+      }
+    }
     // Finalize bookings only after name, phone and email have been collected.
     const fastLatestUser=safeMessages[safeMessages.length-1].content;
     const fastPriorAssistant=safeMessages.filter((m:any)=>m.role==="assistant").slice(-3).map((m:any)=>m.content).join(" ");
