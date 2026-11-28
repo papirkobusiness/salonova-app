@@ -42,7 +42,7 @@ export default {
     const latestMessage=allUserMessages[allUserMessages.length-1]||"";
     const pendingReschedule=allAssistantMessages[allAssistantMessages.length-1]||"";
     const confirmedText=[...allAssistantMessages].reverse().find((t:string)=>/rezervacija je potvrđena|vaša rezervacija je potvrđena/i.test(t))||"";
-    const bookingMatch=confirmedText.match(/potvrđena za\s+(\d{1,2})[.\/]?(\d{1,2})[.\/]?(\d{2,4})?\s+u\s+(\d{1,2}):(\d{2})\s+za\s+(.+?)(?:\.|$)/i);
+    const bookingMatch=confirmedText.match(/potvrđena za\s+(\d{1,2})[.\/]?(\d{1,2})[.\/]?(\d{2,4})?\.?\s+u\s+(\d{1,2}):(\d{2})\s+za\s+(.+?)(?:\.|$)/i);
     const contactEmail=allUserMessages.map((t:string)=>t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)).filter(Boolean).slice(-1)[0]?.[0]||"";
     const contactPhone=allUserMessages.map((t:string)=>t.match(/(?:\+?385[\s./-]*|0)[0-9\s./()-]{7,16}/)).filter(Boolean).slice(-1)[0]?.[0]?.trim()||"";
     const rescheduleIntent=/\b(promijen|promjen|izmjen|pomakn|prebac|drugi termin|novi termin|ipak|moze ipak|može ipak)\b/i.test(latestMessage);
@@ -65,7 +65,7 @@ export default {
         return d.toISOString().slice(0,10);
       })();
       if(pendingConfirm&&affirm){
-        const pendingDate=pendingReschedule.match(/na\s+(\d{1,2})[.\/]?(\d{1,2})[.\/]?(\d{2,4})?\s+u\s+(\d{1,2}):(\d{2})/i);
+        const pendingDate=pendingReschedule.match(/na\s+(\d{1,2})[.\/]?(\d{1,2})[.\/]?(\d{2,4})?\.?\s+u\s+(\d{1,2}):(\d{2})/i);
         if(pendingDate){
           const yr=pendingDate[3]?Number(pendingDate[3])<100?2000+Number(pendingDate[3]):Number(pendingDate[3]):oldYear;
           const nd=String(yr).padStart(4,"0")+"-"+String(Number(pendingDate[2])).padStart(2,"0")+"-"+String(Number(pendingDate[1])).padStart(2,"0");
