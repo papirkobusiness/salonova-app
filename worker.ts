@@ -363,6 +363,18 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
         ? "Naravno! 😊 U salonu nudimo:\\n"+services.map((s:any)=>"• "+s.name+" — "+Number(s.price||0).toFixed(2)+" EUR ("+Number(s.duration_minutes||0)+" min)").join("\\n")+"\\nŽelite li rezervirati neku od ovih usluga ili vas zanima nešto dodatno?"
         : "Salon još nije unio popis usluga i cjenik. 😊";
     }
+    // Keep an existing-booking change request out of the new-booking flow.
+    // The test chat may not contain the original confirmation, so never guess which booking to change.
+    const oldBookingDetailsPrompt = /stari datum i vrijeme|stari datum.*vrijeme|trenutni datum rezervacije/i.test(priorAssistant);
+    const oldDateInLatest = latestUser.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/);
+    const oldClockInLatest = latestUser.match(/\\b([01]?\\d|2[0-3]):([0-5]\\d)\\b|^\\s*([01]?\\d|2[0-3])\\s*$/);
+    if (oldBookingDetailsPrompt && oldDateInLatest && oldClockInLatest) {
+      const oldHour = Number(oldClockInLatest[1] || oldClockInLatest[3]);
+      const oldMinute = Number(oldClockInLatest[2] || 0);
+      const oldDateLabel = oldDateInLatest[1] + "." + oldDateInLatest[2] + (oldDateInLatest[3] ? "." + oldDateInLatest[3] : ".");
+      const oldTimeLabel = String(oldHour).padStart(2, "0") + ":" + String(oldMinute).padStart(2, "0");
+      reply = "Hvala! 😊 Zabilježila sam da želite promijeniti postojeću rezervaciju od " + oldDateLabel + " u " + oldTimeLabel + ". Kako ne bih slučajno otvorila novu rezervaciju ili promijenila pogrešan termin, otvorite razgovor u kojem ste dobili potvrdu rezervacije i ondje napišite novi termin. Vaša postojeća rezervacija zasad ostaje nepromijenjena.";
+    }
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
   }
