@@ -38,7 +38,10 @@ export default {
     if(!safeMessages.length||safeMessages[safeMessages.length-1].role!=="user")return json({error:"Napišite pitanje za recepciju."},400);
     // Existing confirmed bookings: cancellation requests are handled before new booking or rescheduling.
     const cancellationTranscript=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content).join(" ");
-    const cancellationActive=/\botkaz\w*\b/i.test(cancellationTranscript);
+    const latestUserIntentText=safeMessages.filter((m:any)=>m.role==="user").slice(-1)[0]?.content||"";
+    const latestUserIntentNormalized=latestUserIntentText.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
+    const latestRescheduleIntent=/\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*|novi datum|novi termin)\\b/i.test(latestUserIntentNormalized);
+    const cancellationActive=/\\botkaz\\w*\\b/i.test(cancellationTranscript)&&!latestRescheduleIntent;
     const cancellationPending=safeMessages.filter((m:any)=>m.role==="assistant").slice(-1)[0]?.content||"";
     const cancellationAffirm=/^(da|moze|može|potvrdujem|potvrdi|u redu|ok|okej|naravno)$/i.test(safeMessages[safeMessages.length-1].content.trim());
     const cancellationPhoneMatch=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content.match(/(?:\+?385[\s./-]*|0)[0-9\s./()-]{7,16}/)).filter(Boolean).slice(-1)[0];
