@@ -378,7 +378,7 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
     // Rescheduling is a separate flow: detect the intent across the whole chat and never start a new booking.
     const rescheduleConversationText = allUserMessages.join(" ");
     const normalizedRescheduleText = normalize(rescheduleConversationText);
-    const rescheduleRequestActive = /\\b(promjen\\w*\\s+termin|zelim promijeniti termin|htio bih promijeniti termin|htjela bih promijeniti termin|promijeniti postojecu rezervaciju|promjena postojece rezervacije|promijeniti rezervaciju|odustat cu.*promjen)\\b/i.test(normalizedRescheduleText);
+    const rescheduleRequestActive = /\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*)\\b.*\\b(termin\\w*|rezervacij\\w*)\\b|\\b(termin\\w*|rezervacij\\w*)\\b.*\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*)\\b/i.test(normalizedRescheduleText);
     if (rescheduleRequestActive) {
       const phoneInConversation = /(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/.test(rescheduleConversationText);
       const emailInConversation = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i.test(rescheduleConversationText);
