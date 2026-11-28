@@ -375,6 +375,19 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
       const oldTimeLabel = String(oldHour).padStart(2, "0") + ":" + String(oldMinute).padStart(2, "0");
       reply = "Hvala! 😊 Zabilježila sam da želite promijeniti postojeću rezervaciju od " + oldDateLabel + " u " + oldTimeLabel + ". Kako ne bih slučajno otvorila novu rezervaciju ili promijenila pogrešan termin, otvorite razgovor u kojem ste dobili potvrdu rezervacije i ondje napišite novi termin. Vaša postojeća rezervacija zasad ostaje nepromijenjena.";
     }
+    // Rescheduling is a separate flow: never let identity details become a new booking.
+    const rescheduleIntent = /zelim promijeniti termin|htio bih promijeniti termin|htjela bih promijeniti termin|promijeniti postojecu rezervaciju|promjena postojece rezervacije|promijeniti rezervaciju/i.test(normalize(userText));
+    if (rescheduleIntent) {
+      const phoneInConversation = /(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/.test(userText);
+      const emailInConversation = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i.test(userText);
+      if (!phoneInConversation) {
+        reply = "Naravno, pomoći ću vam promijeniti postojeći termin. 😊 Napišite ime i broj mobitela na koji glasi rezervacija.";
+      } else if (!emailInConversation) {
+        reply = "Hvala vam! 😊 Broj mobitela sam zaprimila. Još mi napišite e-mail adresu koju ste naveli prilikom rezervacije kako bih mogla provjeriti postojeći termin. Neću napraviti novu rezervaciju.";
+      } else {
+        reply = "Hvala! 😊 Sada mi napišite stari datum i vrijeme rezervacije (npr. 16.12. u 10:00) kako bismo provjerili da mijenjamo pravi termin.";
+      }
+    }
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
   }
