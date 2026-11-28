@@ -36,68 +36,68 @@ export default {
     if(!context.salonName||!Array.isArray(context.services)||messages.length===0)return json({error:"Nedostaju podaci razgovora."},400);
     const safeMessages=messages.filter((m:any)=>["user","assistant"].includes(m?.role)&&typeof m?.content==="string").map((m:any)=>({role:m.role,content:m.content.slice(0,1000)}));
     if(!safeMessages.length||safeMessages[safeMessages.length-1].role!=="user")return json({error:"Napišite pitanje za recepciju."},400);
-    // When contact details arrive, verify the chosen slot and create the booking through
-    // database RPCs. The database re-checks availability in the same transaction.
+    // Finalize bookings only after name, phone and email have been collected.
     const fastLatestUser=safeMessages[safeMessages.length-1].content;
     const fastPriorAssistant=safeMessages.filter((m:any)=>m.role==="assistant").slice(-3).map((m:any)=>m.content).join(" ");
-    const fastAskedForContact=/(?:ime.{0,50}(?:broj|mobitel|kontakt)|(?:broj|mobitel|kontakt).{0,50}ime|ime\s+i\s+broj)/i.test(fastPriorAssistant);
-    const fastPhoneMatch=fastLatestUser.match(/(?:\+?385[\s./-]*|0)[0-9\s./()-]{7,16}/);
-    if(fastAskedForContact&&fastPhoneMatch){
-      const fastPhoneDigits=fastPhoneMatch[0].replace(/\D/g,"");
-      const fastName=fastLatestUser.replace(fastPhoneMatch[0]," ").replace(/[+0-9]/g," ").replace(/[.,;:()/-]/g," ").replace(/\s+/g," ").trim();
-      if(fastPhoneDigits.length>=9&&fastPhoneDigits.length<=12&&fastName.length>=2&&/[a-zA-ZčćžšđČĆŽŠĐ]/.test(fastName)){
-        const fastUserTexts=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content);
-        const fastTranscript=fastUserTexts.join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-        const fastServices=(context.services||[]).filter((s:any)=>s?.name&&s?.id);
-        const fastChosenService=fastServices.find((s:any)=>{
-          const n=String(s.name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-          const aliases=[n];
-          if(/musko|male|barber/.test(n))aliases.push("musko","musko sisanje","muski","barber");
-          if(/zensko|female/.test(n))aliases.push("zensko","zensko sisanje","zena");
-          if(/pramen|highlight/.test(n))aliases.push("pramenovi","pramen","highlight");
-          return aliases.some((a:string)=>fastTranscript.includes(a));
-        });
-        const dateMatches=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/g)));
-        const dateMatch=dateMatches[dateMatches.length-1]||null;
-        let fastDate="";
-        if(dateMatch){
-          const day=Number(dateMatch[1]),month=Number(dateMatch[2]),now=new Date();
-          const year=dateMatch[3]?(Number(dateMatch[3])<100?2000+Number(dateMatch[3]):Number(dateMatch[3])):Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(now));
-          let candidate=new Date(year,month-1,day,12);
-          const todayText=new Intl.DateTimeFormat("en-CA",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric",month:"2-digit",day:"2-digit"}).format(now);
-          const todayDate=new Date(todayText+"T12:00:00");
-          if(!dateMatch[3]&&candidate<todayDate)candidate=new Date(year+1,month-1,day,12);
-          if(candidate.getDate()===day&&candidate.getMonth()===month-1)fastDate=candidate.toISOString().slice(0,10);
-        }
-        const explicitTimes=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b/gi)));
-        const explicitTime=explicitTimes[explicitTimes.length-1]||null;
-        const bareHours=fastUserTexts.filter((t:string)=>/^([01]?\d|2[0-3])$/.test(t.trim()));
-        const fastBareHour=bareHours.length?bareHours[bareHours.length-1]:null;
-        const fastHour=explicitTime?Number(explicitTime[1]||explicitTime[3]):fastBareHour!==null?Number(fastBareHour):null;
-        const fastMinute=explicitTime?Number(explicitTime[2]||0):0;
-        if(fastChosenService&&fastDate&&fastHour!==null&&context.salonSlug){
-          const fastTime=String(fastHour).padStart(2,"0")+":"+String(fastMinute).padStart(2,"0");
-          try{
-            const slots=await supabaseRpc(env,"get_public_slots",{p_slug:context.salonSlug,p_service_id:fastChosenService.id,p_date:fastDate});
-            const available=(Array.isArray(slots)?slots:[]).some((s:any)=>String(s.slot_time||s).slice(0,5)===fastTime);
-            if(!available){
-              const free=(Array.isArray(slots)?slots:[]).map((s:any)=>String(s.slot_time||s).slice(0,5));
-              return json({reply:free.length?"Taj termin je, nažalost, već zauzet. 😊 Slobodni termini su: "+free.join(", ")+". Koji vam odgovara?":"Taj termin nije dostupan. 😊 Možete odabrati drugi datum ili vrijeme."});
-            }
-            const booking=await supabaseRpc(env,"create_public_booking",{p_slug:context.salonSlug,p_service_id:fastChosenService.id,p_date:fastDate,p_time:fastTime+":00",p_client_name:fastName,p_phone:fastPhoneMatch[0].trim(),p_staff_id:null});
-            if(booking?.status==="confirmed"){
-              return json({reply:"Odlično, "+fastName+"! 😊 Vaša rezervacija je potvrđena za "+fastDate.split("-").reverse().join(".")+" u "+fastTime+" za "+fastChosenService.name+". Veselimo se vašem dolasku!"});
-            }
-          }catch(err:any){
-            console.error("Salonova booking RPC failed",err);
-            return json({reply:"Hvala vam, "+fastName+"! 😊 Podatke sam zaprimila, ali rezervacija nije potvrđena jer trenutno ne mogu dovršiti provjeru kalendara. Molimo pokušajte ponovno ili rezervirajte putem stranice salona."});
+    const fastAskedForContact=/(?:ime.{0,50}(?:broj|mobitel|kontakt)|(?:broj|mobitel|kontakt).{0,50}ime|ime\s+i\s+broj|e[\s-]?mail|email)/i.test(fastPriorAssistant);
+    const fastUserTexts=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content);
+    const fastEmailMatch=fastLatestUser.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    const fastPhoneMatches=fastUserTexts.map((t:string)=>t.match(/(?:\+?385[\s./-]*|0)[0-9\s./()-]{7,16}/)).filter(Boolean);
+    const fastPhoneMatch=fastPhoneMatches[fastPhoneMatches.length-1]||null;
+    const fastPhoneDigits=fastPhoneMatch?fastPhoneMatch[0].replace(/\D/g,""):"";
+    const fastContactMessage=fastPhoneMatch?fastUserTexts.find((t:string)=>t.includes(fastPhoneMatch[0]))||"": "";
+    const fastName=fastPhoneMatch?fastContactMessage.replace(fastPhoneMatch[0]," ").replace(/[+0-9]/g," ").replace(/[.,;:()/-]/g," ").replace(/\s+/g," ").trim():"";
+    if(fastAskedForContact&&fastPhoneMatch&&fastPhoneDigits.length>=9&&fastPhoneDigits.length<=12&&fastName.length>=2&&/[a-zA-ZčćžšđČĆŽŠĐ]/.test(fastName)){
+      if(!fastEmailMatch){
+        return json({reply:"Hvala vam, "+fastName+"! 😊 Još mi samo napišite e-mail adresu kako bismo mogli potvrditi rezervaciju i poslati podsjetnik."});
+      }
+      const fastTranscript=fastUserTexts.join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+      const fastServices=(context.services||[]).filter((s:any)=>s?.name&&s?.id);
+      const fastChosenService=fastServices.find((s:any)=>{
+        const n=String(s.name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+        const aliases=[n];
+        if(/musko|male|barber/.test(n))aliases.push("musko","musko sisanje","muski","barber");
+        if(/zensko|female/.test(n))aliases.push("zensko","zensko sisanje","zena");
+        if(/pramen|highlight/.test(n))aliases.push("pramenovi","pramen","highlight");
+        return aliases.some((a:string)=>fastTranscript.includes(a));
+      });
+      const dateMatches=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/g)));
+      const dateMatch=dateMatches[dateMatches.length-1]||null;
+      let fastDate="";
+      if(dateMatch){
+        const day=Number(dateMatch[1]),month=Number(dateMatch[2]),now=new Date();
+        const year=dateMatch[3]?(Number(dateMatch[3])<100?2000+Number(dateMatch[3]):Number(dateMatch[3])):Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(now));
+        let candidate=new Date(year,month-1,day,12);
+        const todayText=new Intl.DateTimeFormat("en-CA",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric",month:"2-digit",day:"2-digit"}).format(now);
+        const todayDate=new Date(todayText+"T12:00:00");
+        if(!dateMatch[3]&&candidate<todayDate)candidate=new Date(year+1,month-1,day,12);
+        if(candidate.getDate()===day&&candidate.getMonth()===month-1)fastDate=candidate.toISOString().slice(0,10);
+      }
+      const explicitTimes=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b/gi)));
+      const explicitTime=explicitTimes[explicitTimes.length-1]||null;
+      const bareHours=fastUserTexts.filter((t:string)=>/^([01]?\d|2[0-3])$/.test(t.trim()));
+      const fastBareHour=bareHours.length?bareHours[bareHours.length-1]:null;
+      const fastHour=explicitTime?Number(explicitTime[1]||explicitTime[3]):fastBareHour!==null?Number(fastBareHour):null;
+      const fastMinute=explicitTime?Number(explicitTime[2]||0):0;
+      if(fastChosenService&&fastDate&&fastHour!==null&&context.salonSlug){
+        const fastTime=String(fastHour).padStart(2,"0")+":"+String(fastMinute).padStart(2,"0");
+        try{
+          const slots=await supabaseRpc(env,"get_public_slots",{p_slug:context.salonSlug,p_service_id:fastChosenService.id,p_date:fastDate});
+          const available=(Array.isArray(slots)?slots:[]).some((s:any)=>String(s.slot_time||s).slice(0,5)===fastTime);
+          if(!available){
+            const free=(Array.isArray(slots)?slots:[]).map((s:any)=>String(s.slot_time||s).slice(0,5));
+            return json({reply:free.length?"Taj termin je, nažalost, već zauzet. 😊 Slobodni termini su: "+free.join(", ")+". Koji vam odgovara?":"Taj termin nije dostupan. 😊 Možete odabrati drugi datum ili vrijeme."});
           }
+          const booking=await supabaseRpc(env,"create_public_booking",{p_slug:context.salonSlug,p_service_id:fastChosenService.id,p_date:fastDate,p_time:fastTime+":00",p_client_name:fastName,p_phone:fastPhoneMatch[0].trim(),p_staff_id:null,p_client_email:fastEmailMatch[0].trim().toLowerCase()});
+          if(booking?.status==="confirmed"){
+            return json({reply:"Odlično, "+fastName+"! 😊 Vaša rezervacija je potvrđena za "+fastDate.split("-").reverse().join(".")+" u "+fastTime+" za "+fastChosenService.name+". Potvrda i podsjetnik stižu na e-mail. Veselimo se vašem dolasku!"});
+          }
+        }catch(err:any){
+          console.error("Salonova booking RPC failed",err);
+          return json({reply:"Hvala vam, "+fastName+"! 😊 Sve podatke sam zaprimila, ali rezervacija nije potvrđena jer trenutno ne mogu dovršiti spremanje. Molimo pokušajte ponovno ili rezervirajte putem stranice salona."});
         }
-        return json({reply:"Hvala vam, "+fastName+"! 😊 Zabilježila sam ime i kontakt. Termin još nije službeno rezerviran jer nedostaje podatak za provjeru kalendara. Rezervaciju možete dovršiti putem stranice salona."});
       }
-      if(fastPhoneDigits.length>=9&&fastPhoneDigits.length<=12){
-        return json({reply:"Hvala vam! 😊 Broj mobitela sam prepoznala. Još mi samo napišite svoje ime."});
-      }
+      return json({reply:"Hvala vam, "+fastName+"! 😊 Zaprimila sam podatke, ali za potvrdu rezervacije nedostaje datum, vrijeme ili odabrana usluga."});
     }
     const serviceFacts=context.services.slice(0,60).map((s:any)=>`• ${String(s.name||"Usluga").slice(0,100)} — ${Number(s.duration_minutes||0)} min — ${Number(s.price||0).toFixed(2)} EUR${s.description?"; "+String(s.description).slice(0,300):""}`).join("\n");
     const hours=context.businessHours?.default||{};
