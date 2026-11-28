@@ -228,6 +228,16 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
     const services=context.services.filter((s:any)=>s?.name);
     const serviceAliases=(s:any)=>{const n=normalize(String(s.name));const aliases=[n];if(/musko|male|barber/.test(n))aliases.push("musko","musko sisanje","muski","barber");if(/zensko|female/.test(n))aliases.push("zensko","zensko sisanje","zena");if(/pramen|highlight/.test(n))aliases.push("pramenovi","pramen","highlight");return aliases};
     const chosenService=services.find((s:any)=>serviceAliases(s).some((a:string)=>normalize(userText).includes(a)))||null;
+    // Prevent the reschedule-identification conversation from falling into new-booking logic.
+    const numericDateFromText=(v:string)=>/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/.test(v);
+    const rescheduleIdentificationPrompt=/trenutni datum rezervacije|koju uslugu ste rezervirali|koju uslugu ste rezervisali/i.test(priorAssistant);
+    const rescheduleIdentificationAnswer=!!(rescheduleIdentificationPrompt&&chosenService&&numericDateFromText(latestUser));
+    const rescheduleDetailsPrompt=/vrijeme.*rezervacij|sat.*rezervacij|broj mobitel.*e.?mail|telefon.*e.?mail/i.test(priorAssistant)&&/promjen|izmjen|pomakn|prebac|rezervacij/i.test(priorAssistant);
+    if(rescheduleIdentificationAnswer){
+      reply="Hvala! 😊 Zabilježila sam da imate "+String(chosenService.name)+" rezerviran za "+latestUser.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/)[0]+". Koje je bilo rezervirano vrijeme i na koji broj mobitela ili e-mail glasi rezervacija? Neću kreirati novu rezervaciju.";
+    }else if(rescheduleDetailsPrompt&&!bookingMatch){
+      reply="Hvala! 😊 Da ne bih slučajno napravila novu ili pogrešnu rezervaciju, promjenu postojeće mogu sigurno obraditi u razgovoru u kojem ste dobili potvrdu rezervacije. Molimo otvorite taj razgovor i napišite novi datum ili vrijeme. Vaš postojeći termin zasad ostaje nepromijenjen.";
+    }
     const genericHaircut=/\bsisanje\b/.test(normalize(latestUser))&&!/(musko|muski|zensko|zena)/.test(normalize(latestUser));
     const servicePrompted=/za koju uslugu|koju uslugu|sto biste zeljeli rezervirati|sto biste zeleli rezervisati|rezervirati termin/i.test(priorAssistant);
     const awaitingService=/za koju uslugu|koju uslugu|sto biste zeljeli rezervirati|sto biste zeljeli|koju biste odabrali/i.test(priorAssistant);
