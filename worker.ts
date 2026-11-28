@@ -376,10 +376,11 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
       reply = "Hvala! 😊 Zabilježila sam da želite promijeniti postojeću rezervaciju od " + oldDateLabel + " u " + oldTimeLabel + ". Kako ne bih slučajno otvorila novu rezervaciju ili promijenila pogrešan termin, otvorite razgovor u kojem ste dobili potvrdu rezervacije i ondje napišite novi termin. Vaša postojeća rezervacija zasad ostaje nepromijenjena.";
     }
     // Rescheduling is a separate flow: never let identity details become a new booking.
-    const rescheduleRequestActive = /zelim promijeniti termin|htio bih promijeniti termin|htjela bih promijeniti termin|promijeniti postojecu rezervaciju|promjena postojece rezervacije|promijeniti rezervaciju/i.test(normalize(userText));
+    const rescheduleConversationText = allUserMessages.join(" ");
+    const rescheduleRequestActive = /zelim promijeniti termin|htio bih promijeniti termin|htjela bih promijeniti termin|promijeniti postojecu rezervaciju|promjena postojece rezervacije|promijeniti rezervaciju/i.test(normalize(rescheduleConversationText));
     if (rescheduleRequestActive) {
-      const phoneInConversation = /(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/.test(userText);
-      const emailInConversation = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i.test(userText);
+      const phoneInConversation = /(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/.test(rescheduleConversationText);
+      const emailInConversation = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i.test(rescheduleConversationText);
       if (!phoneInConversation) {
         reply = "Naravno, pomoći ću vam promijeniti postojeći termin. 😊 Napišite ime i broj mobitela na koji glasi rezervacija.";
       } else if (!emailInConversation) {
