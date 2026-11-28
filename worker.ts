@@ -106,7 +106,7 @@ export default {
     const fastName=fastPhoneMatch?fastContactMessage.replace(fastPhoneMatch[0]," ").replace(/[+0-9]/g," ").replace(/[.,;:()/-]/g," ").replace(/\s+/g," ").trim():"";
     if(fastAskedForContact&&fastPhoneMatch&&fastPhoneDigits.length>=9&&fastPhoneDigits.length<=12&&fastName.length>=2&&/[a-zA-ZčćžšđČĆŽŠĐ]/.test(fastName)){
       if(!fastEmailMatch){
-        const changedDateMatch=fastLatestUser.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?/);
+        const changedDateMatch=fastLatestUser.match(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?/);
         if(changedDateMatch){
           const day=Number(changedDateMatch[1]),month=Number(changedDateMatch[2]),year=changedDateMatch[3]?(Number(changedDateMatch[3])<100?2000+Number(changedDateMatch[3]):Number(changedDateMatch[3])):Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(new Date()));
           const d=new Date(year,month-1,day,12);
@@ -117,7 +117,7 @@ export default {
         }
         return json({reply:"Hvala vam, "+fastName+"! 😊 Još mi samo napišite e-mail adresu kako bismo provjerili dostupnost i dovršili rezervaciju."});
       }
-      const fastTranscript=fastUserTexts.join(" ").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
+      const fastTranscript=fastUserTexts.join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
       const fastAssistantTranscript=safeMessages.filter((m:any)=>m.role==="assistant").map((m:any)=>m.content).join(" ").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
       const fastServices=(context.services||[]).filter((s:any)=>s?.name&&s?.id);
       const fastChosenService=fastServices.find((s:any)=>{
@@ -142,7 +142,7 @@ export default {
           fastDate=new Date(resolvedYear,month-1,day,12).toISOString().slice(0,10);
         }
       }
-      const explicitTimes=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/\\b([01]?\\d|2[0-3]):([0-5]\\d)\\b|\\b([01]?\\d|2[0-3])\\s*(?:h|sati)\\b/gi)));
+      const explicitTimes=fastUserTexts.flatMap((t:string)=>Array.from(t.matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b/gi)));
       const explicitTime=explicitTimes[explicitTimes.length-1]||null;
       const bareHours=fastUserTexts.filter((t:string)=>/^\\s*([01]?\\d|2[0-3])\\s*$/.test(t));
       const fastBareHour=bareHours.length?bareHours[bareHours.length-1]:null;
