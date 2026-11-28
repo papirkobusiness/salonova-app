@@ -191,18 +191,14 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
     if(askedForContact&&/^(da|moze|moze hvala|naravno|u redu|okej|ok|moze tako)$/i.test(normalize(latestUser))){
       reply="Naravno! 😊 Napišite mi svoje ime i broj mobitela pa ću zabilježiti podatke za salon.";
     }
-    // Price-list intent (including common typos) returns configured services, never opening hours.
+    // Unified services-and-prices response. Use real newlines (not literal \\n text).
     const normalizedLatest=normalize(latestUser);
-    const asksPriceList=/\b(cjenik|cijenik|cjenovnik|cijene|cijena|koliko kosta|koliko kostaju|cijena usluge|cjenik usluga)\b/.test(normalizedLatest);
-    const asksServices=/\b(usluge|uslugu|sto nudite|sta nudite|koje usluge|ponuda|salonske usluge)\b/.test(normalizedLatest);
-    if(asksPriceList){
+    const asksPriceList=/\\b(cjenik|cijenik|cjenovnik|cijene|cijena|koliko kosta|koliko kostaju|cijena usluge|cjenik usluga)\\b/.test(normalizedLatest);
+    const asksServices=/\\b(usluge|uslugu|sto nudite|sta nudite|koje usluge|ponuda|salonske usluge|popis usluga|vrste usluga)\\b/.test(normalizedLatest);
+    if(asksPriceList||asksServices){
       reply=services.length
-        ? "Naravno! 😊 Cjenik naših usluga:\\n"+services.map((s:any)=>"• "+s.name+" — "+Number(s.price||0).toFixed(2)+" EUR ("+Number(s.duration_minutes||0)+" min)").join("\\n")+"\\nKoju biste uslugu željeli rezervirati?"
-        : "Salon još nije unio cjenik usluga. 😊";
-    }else if(asksServices){
-      reply=services.length
-        ? "Rado! 😊 U salonu nudimo:\\n"+services.map((s:any)=>"• "+s.name+" ( "+Number(s.duration_minutes||0)+" min)").join("\\n")+"\\nKoja vas usluga zanima? Mogu vam reći više ili pomoći s rezervacijom."
-        : "Salon još nije unio popis usluga. 😊";
+        ? "Naravno! 😊 U salonu nudimo:\\n"+services.map((s:any)=>"• "+s.name+" — "+Number(s.price||0).toFixed(2)+" EUR ("+Number(s.duration_minutes||0)+" min)").join("\\n")+"\\nŽelite li rezervirati neku od ovih usluga ili vas zanima nešto dodatno?"
+        : "Salon još nije unio popis usluga i cjenik. 😊";
     }
     return json({reply});
    }catch(_e){return json({error:"Virtualna recepcija trenutačno nije dostupna. Pokušajte ponovno za trenutak."},502)}
