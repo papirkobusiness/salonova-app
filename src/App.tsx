@@ -245,9 +245,9 @@ function PublicBooking({slug}:{slug:string}){
    const q=(text??question).trim();if(!q||!salon)return
    const n=q.toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
    // Route the latest explicit intent first; a customer may switch from cancellation to rescheduling.
-   const publicRescheduleIntent=/\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*|drugi termin|novi termin|novi datum|datum)\\b/.test(n)
-   const publicCancelTranscript=[...messages.map(m=>m.text),q].join(' ').toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')
-   if(!publicRescheduleIntent&&/\\botkaz\\w*\\b/.test(publicCancelTranscript)){
+   const publicRescheduleIntent=/\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*|drugi termin|novi termin|novi datum|datum)\b/.test(n)
+   const publicCancelTranscript=[...messages.map(m=>m.text),q].join(' ').toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+   if(!publicRescheduleIntent&&/\botkaz\w*\b/.test(publicCancelTranscript)){
      const transcript=[...messages.map(m=>({role:m.role,content:m.text})),{role:'user',content:q}].slice(-12)
      try{
        const response=await fetch('/api/reception',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({context:{salonName:salon.name,salonSlug:slug,services:salon.services.map(s=>({id:s.id,name:s.name,duration_minutes:s.duration_minutes,price:s.price})),businessHours:salon.business_hours,timezone:salon.timezone||'Europe/Zagreb'},messages:transcript})})
@@ -257,7 +257,7 @@ function PublicBooking({slug}:{slug:string}){
      }catch(e:any){setMessages(m=>[...m,{role:'user',text:q},{role:'assistant',text:e.message||'Otkazivanje trenutačno nije dostupno. Pokušajte ponovno.'}]);setQuestion('');return}
    }
    // Route rescheduling requests to Worker; normalize Croatian diacritics before matching.
-   const publicRescheduleTranscript=[...messages.map(m=>m.text),q].join(' ').toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')
+   const publicRescheduleTranscript=[...messages.map(m=>m.text),q].join(' ').toLocaleLowerCase('hr-HR').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
    if(publicRescheduleIntent){
      const transcript=[...messages.map(m=>({role:m.role,content:m.text})),{role:'user',content:q}].slice(-12)
      try{
