@@ -44,22 +44,49 @@ export default {
     // A reschedule request must take priority over service selection and the new-booking assistant.
     const normalizeReschedule=(v:string)=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
     const rescheduleTranscript=normalizeReschedule(allUserMessages.join(" "));
-    const rescheduleRequestActive=/\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*)\b.*\b(termin\w*|rezervacij\w*)\b|\b(termin\w*|rezervacij\w*)\b.*\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*)\b/i.test(rescheduleTranscript);
+    const rescheduleRequestActive=/\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*)\\b.*\\b(termin\\w*|rezervacij\\w*)\\b|\\b(termin\\w*|rezervacij\\w*)\\b.*\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*)\\b/i.test(rescheduleTranscript);
     if(rescheduleRequestActive){
       const transcriptText=allUserMessages.join(" ");
-      const rescheduleDateTime=/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?[^\n]{0,20}\b([01]?\d|2[0-3])(?::([0-5]\d)|\s*(?:h|sati))?/i.test(transcriptText);
-      const reschedulePhone=/(?:\+?385[\s./-]*|0)[0-9\s./()-]{7,16}/.test(transcriptText);
-      const rescheduleEmail=/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(transcriptText);
-      if(!rescheduleDateTime){
-        return json({reply:"Naravno, pomoći ću vam promijeniti postojeći termin. 😊 Napišite stari datum i vrijeme rezervacije (npr. 16.12. u 10:00). Ovo nije nova rezervacija."});
-      }
-      if(!reschedulePhone){
-        return json({reply:"Hvala! 😊 Zabilježila sam stari termin. Sada napišite ime i broj mobitela na koji glasi postojeća rezervacija."});
-      }
-      if(!rescheduleEmail){
-        return json({reply:"Hvala! 😊 Još mi napišite e-mail adresu koju ste naveli prilikom postojeće rezervacije kako bismo je mogli sigurno pronaći."});
-      }
-      return json({reply:"Hvala vam, zaprimila sam podatke za promjenu postojeće rezervacije. 😊 Još neću mijenjati termin dok se postojeća rezervacija ne pronađe i ne provjeri."});
+      const oldMatch=transcriptText.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?[^\\n]{0,20}\\b([01]?\\d|2[0-3])(?::([0-5]\\d)|\\s*(?:h|sati))?/i);
+      if(!oldMatch)return json({reply:"Naravno, pomoći ću vam promijeniti postojeći termin. 😊 Napišite stari datum i vrijeme rezervacije (npr. 16.12. u 10:00). Ovo nije nova rezervacija."});
+      const phoneMatch=allUserMessages.map((t:string)=>t.match(/(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/)).filter(Boolean).slice(-1)[0];
+      if(!phoneMatch)return json({reply:"Hvala! 😊 Sada napišite ime i broj mobitela na koji glasi postojeća rezervacija."});
+      const emailMatch=allUserMessages.map((t:string)=>t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i)).filter(Boolean).slice(-1)[0];
+      if(!emailMatch)return json({reply:"Hvala! 😊 Još mi napišite e-mail adresu koju ste naveli prilikom postojeće rezervacije."});
+      if(!context.salonSlug)return json({reply:"Žao mi je, ne mogu pronaći salon za ovu rezervaciju. Molimo pokušajte preko stranice salona."});
+      const yearNow=Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(new Date()));
+      const oldYear=oldMatch[3]?Number(oldMatch[3])<100?2000+Number(oldMatch[3]):Number(oldMatch[3]):yearNow;
+      const oldDate=String(oldYear).padStart(4,"0")+"-"+String(Number(oldMatch[2])).padStart(2,"0")+"-"+String(Number(oldMatch[1])).padStart(2,"0");
+      const oldTime=String(Number(oldMatch[4])).padStart(2,"0")+":"+String(Number(oldMatch[5]||0)).padStart(2,"0");
+      const phone=phoneMatch[0].trim();
+      const email=emailMatch[0].toLowerCase();
+      try{
+        const found=await supabaseRpc(env,"get_public_booking_for_reschedule",{p_slug:context.salonSlug,p_phone:phone,p_client_email:email,p_old_date:oldDate,p_old_time:oldTime+":00"});
+        if(found?.status==="not_found")return json({reply:"Nažalost, ne mogu pronaći potvrđenu rezervaciju s tim podacima. 😊 Provjerite stari datum, vrijeme, broj mobitela i e-mail adresu koju ste koristili pri rezervaciji."});
+        if(found?.status==="already_changed")return json({reply:"Ovu rezervaciju već smo jednom promijenili. 😊 Dodatna promjena nije moguća. Molimo javite se salonu izravno."});
+        if(found?.status!=="found")return json({reply:"Trenutačno ne mogu provjeriti rezervaciju. Vaš postojeći termin nije promijenjen. Pokušajte ponovno."});
+        if(/potvrditi promjenu rezervacije/i.test(pendingReschedule)&&/^(da|moze|može|potvrdujem|potvrdi|u redu|ok|okej|naravno)$/i.test(latestMessage.trim())){
+          const pendingDate=pendingReschedule.match(/na\\s+(\\d{1,2})[.\\/]?(\\d{1,2})[.\\/]?(\\d{2,4})?\\.?\\s+u\\s+(\\d{1,2}):(\\d{2})/i);
+          if(!pendingDate)return json({reply:"Molim vas napišite novi datum i vrijeme još jednom, u obliku 18.12.2026. u 11:00."});
+          const yr=pendingDate[3]?Number(pendingDate[3])<100?2000+Number(pendingDate[3]):Number(pendingDate[3]):yearNow;
+          const newDate=String(yr).padStart(4,"0")+"-"+String(Number(pendingDate[2])).padStart(2,"0")+"-"+String(Number(pendingDate[1])).padStart(2,"0");
+          const newTime=String(Number(pendingDate[4])).padStart(2,"0")+":"+pendingDate[5];
+          const changed=await supabaseRpc(env,"reschedule_public_booking",{p_slug:context.salonSlug,p_phone:phone,p_client_email:email,p_old_date:oldDate,p_old_time:oldTime+":00",p_new_date:newDate,p_new_time:newTime+":00"});
+          if(changed?.status==="rescheduled")return json({reply:"Gotovo! 😊 Vaša postojeća rezervacija promijenjena je na "+newDate.split("-").reverse().join(".")+" u "+newTime+". Potvrda i podsjetnik ažurirani su."});
+          if(changed?.status==="already_changed")return json({reply:"Ovu rezervaciju već smo jednom promijenili. 😊 Dodatna promjena nije moguća. Molimo javite se salonu izravno."});
+          if(changed?.status==="unavailable")return json({reply:"Nažalost, taj termin nije dostupan ili je izvan radnog vremena. Vaša postojeća rezervacija ostaje nepromijenjena. 😊 Odaberite drugi datum i vrijeme."});
+          return json({reply:"Ne mogu potvrditi promjenu rezervacije. Provjerite podatke ili se javite salonu izravno."});
+        }
+        const requested=latestMessage.match(/(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-](\\d{2,4}))?[^\\n]{0,15}\\b([01]?\\d|2[0-3])(?::([0-5]\\d)|\\s*(?:h|sati))?/i);
+        if(!requested)return json({reply:"Pronašla sam vašu postojeću rezervaciju za "+String(found.service||"uslugu")+" "+oldDate.split("-").reverse().join(".")+" u "+oldTime+". 😊 Koji novi datum i vrijeme želite? Napišite ih zajedno, npr. 18.12.2026. u 11:00."});
+        const ny=requested[3]?Number(requested[3])<100?2000+Number(requested[3]):Number(requested[3]):yearNow;
+        const nd=String(ny).padStart(4,"0")+"-"+String(Number(requested[2])).padStart(2,"0")+"-"+String(Number(requested[1])).padStart(2,"0");
+        const checkDate=new Date(ny,Number(requested[2])-1,Number(requested[1]),12);
+        if(checkDate.getFullYear()!==ny||checkDate.getMonth()!==Number(requested[2])-1||checkDate.getDate()!==Number(requested[1]))return json({reply:"Taj datum nije valjan. 😊 Napišite novi datum i vrijeme, npr. 18.12.2026. u 11:00."});
+        const nt=String(Number(requested[4])).padStart(2,"0")+":"+String(Number(requested[5]||0)).padStart(2,"0");
+        if(nd===oldDate&&nt===oldTime)return json({reply:"To je već vaš postojeći termin. 😊 Napišite drugi datum ili vrijeme."});
+        return json({reply:"Pronašla sam vašu rezervaciju za "+String(found.service||"uslugu")+". 😊 Želite li potvrditi promjenu s "+oldDate.split("-").reverse().join(".")+" u "+oldTime+" na "+nd.split("-").reverse().join(".")+" u "+nt+"? Odgovorite DA za potvrdu. Postojeći termin ostaje na snazi dok ne potvrdite."});
+      }catch(err:any){console.error("Salonova public reschedule lookup failed",err);return json({reply:"Žao mi je, trenutačno ne mogu provjeriti postojeću rezervaciju. Vaš termin nije promijenjen. Pokušajte ponovno malo kasnije."});}
     }
     const confirmedText=[...allAssistantMessages].reverse().find((t:string)=>/rezervacija je potvrđena|vaša rezervacija je potvrđena/i.test(t))||"";
     const bookingMatch=confirmedText.match(/potvrđena za\s+(\d{1,2})[.\/]?(\d{1,2})[.\/]?(\d{2,4})?\.?\s+u\s+(\d{1,2}):(\d{2})\s+za\s+(.+?)(?:\.|$)/i);
