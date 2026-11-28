@@ -100,7 +100,7 @@ export default {
     // A reschedule request must take priority over service selection and the new-booking assistant.
     const normalizeReschedule=(v:string)=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
     const rescheduleTranscript=normalizeReschedule(allUserMessages.join(" "));
-    const rescheduleRequestActive=/\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*)\b.*\b(termin\w*|rezervacij\w*)\b|\b(termin\w*|rezervacij\w*)\b.*\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*)\b/i.test(rescheduleTranscript);
+    const rescheduleRequestActive=/\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*)\b.*\b(termin\w*|rezervacij\w*|datum\w*)\b|\b(termin\w*|rezervacij\w*|datum\w*)\b.*\b(promjen\w*|izmjen\w*|pomakn\w*|prebac\w*)\b/i.test(rescheduleTranscript);
     if(rescheduleRequestActive){
       const transcriptText=allUserMessages.join(" ");
       const oldMatch=transcriptText.match(/(?:^|\b)([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?[^\n]{0,20}\b([01]?\d|2[0-3])(?::([0-5]\d)|\s*(?:h|sati))?/i);
