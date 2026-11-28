@@ -35,7 +35,7 @@ begin
     and tsrange((p_new_date+b.booking_time)::timestamp,(p_new_date+b.booking_time+make_interval(mins=>coalesce(sv.duration_minutes,60)))::timestamp,'[)')
       && tsrange((p_new_date+p_new_time)::timestamp,(p_new_date+p_new_time+make_interval(mins=>v_duration))::timestamp,'[)')) into v_busy;
   if v_busy then return jsonb_build_object('status','unavailable'); end if;
-  update public.bookings set booking_date=p_new_date,booking_time=p_new_time,reschedule_count=reschedule_count+1,updated_at=now() where id=v_booking.id;
+  update public.bookings set booking_date=p_new_date,booking_time=p_new_time,reschedule_count=reschedule_count+1 where id=v_booking.id;
   return jsonb_build_object('status','rescheduled','booking_id',v_booking.id,'date',p_new_date,'time',p_new_time,'reschedule_count',1);
 end; $$;
 revoke all on function public.reschedule_public_booking(text,text,text,date,time,date,time) from public;
