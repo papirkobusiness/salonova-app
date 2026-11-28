@@ -375,18 +375,20 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
       const oldTimeLabel = String(oldHour).padStart(2, "0") + ":" + String(oldMinute).padStart(2, "0");
       reply = "Hvala! 😊 Zabilježila sam da želite promijeniti postojeću rezervaciju od " + oldDateLabel + " u " + oldTimeLabel + ". Kako ne bih slučajno otvorila novu rezervaciju ili promijenila pogrešan termin, otvorite razgovor u kojem ste dobili potvrdu rezervacije i ondje napišite novi termin. Vaša postojeća rezervacija zasad ostaje nepromijenjena.";
     }
-    // Rescheduling is a separate flow: never let identity details become a new booking.
+    // Rescheduling is a separate flow: detect the intent across the whole chat and never start a new booking.
     const rescheduleConversationText = allUserMessages.join(" ");
-    const rescheduleRequestActive = /zelim promijeniti termin|htio bih promijeniti termin|htjela bih promijeniti termin|promijeniti postojecu rezervaciju|promjena postojece rezervacije|promijeniti rezervaciju/i.test(normalize(rescheduleConversationText));
+    const normalizedRescheduleText = normalize(rescheduleConversationText);
+    const rescheduleRequestActive = /\\b(promjen\\w*\\s+termin|zelim promijeniti termin|htio bih promijeniti termin|htjela bih promijeniti termin|promijeniti postojecu rezervaciju|promjena postojece rezervacije|promijeniti rezervaciju|odustat cu.*promjen)\\b/i.test(normalizedRescheduleText);
     if (rescheduleRequestActive) {
       const phoneInConversation = /(?:\\+?385[\\s./-]*|0)[0-9\\s./()-]{7,16}/.test(rescheduleConversationText);
       const emailInConversation = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i.test(rescheduleConversationText);
+      const oldDateAndTimeInConversation = /(?:^|\\b)([0-3]?\\d)[.\\/-]([01]?\\d)(?:[.\\/-]\\d{2,4})?[^\\n]{0,20}\\b([01]?\\d|2[0-3])(?::([0-5]\\d)|\\s*(?:h|sati))?/i.test(rescheduleConversationText);
       if (!phoneInConversation) {
-        reply = "Naravno, pomoći ću vam promijeniti postojeći termin. 😊 Napišite ime i broj mobitela na koji glasi rezervacija.";
+        reply = "Razumijem, želite promijeniti postojeći termin. 😊 Napišite ime i broj mobitela na koji glasi rezervacija. Neću otvoriti novu rezervaciju.";
       } else if (!emailInConversation) {
-        reply = "Hvala vam! 😊 Broj mobitela sam zaprimila. Još mi napišite e-mail adresu koju ste naveli prilikom rezervacije kako bih mogla provjeriti postojeći termin. Neću napraviti novu rezervaciju.";
-      } else {
-        reply = "Hvala! 😊 Sada mi napišite stari datum i vrijeme rezervacije (npr. 16.12. u 10:00) kako bismo provjerili da mijenjamo pravi termin.";
+        reply = "Hvala! 😊 Broj mobitela sam zaprimila. Napišite još e-mail adresu koju ste naveli prilikom postojeće rezervacije kako bih mogla provjeriti termin.";
+      } else if (!oldDateAndTimeInConversation) {
+        reply = "Hvala! 😊 Sada mi napišite stari datum i vrijeme postojeće rezervacije (npr. 16.12. u 10:00).";
       }
     }
     return json({reply});
