@@ -39,7 +39,7 @@ export default {
     // Existing confirmed bookings: cancellation requests are handled before new booking or rescheduling.
     const cancellationTranscript=safeMessages.filter((m:any)=>m.role==="user").map((m:any)=>m.content).join(" ");
     const latestUserIntentText=safeMessages.filter((m:any)=>m.role==="user").slice(-1)[0]?.content||"";
-    const latestUserIntentNormalized=latestUserIntentText.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
+    const latestUserIntentNormalized=latestUserIntentText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
     const latestRescheduleIntent=/\\b(promjen\\w*|izmjen\\w*|pomakn\\w*|prebac\\w*|novi datum|novi termin)\\b/i.test(latestUserIntentNormalized);
     const cancellationActive=/\\botkaz\\w*\\b/i.test(cancellationTranscript)&&!latestRescheduleIntent;
     const cancellationPending=safeMessages.filter((m:any)=>m.role==="assistant").slice(-1)[0]?.content||"";
