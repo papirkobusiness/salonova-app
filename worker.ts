@@ -56,7 +56,7 @@ export default {
       const cancellationYear=Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(new Date()));
       const pendingCancellation=/potvrditi otkazivanje|potvrdite otkazivanje|želite li otkazati rezervaciju/i.test(cancellationPending);
       if(pendingCancellation&&cancellationAffirm){
-        const pd=cancellationPending.match(/(?:za|termin)\\s+(\\d{1,2})[.\\/]?(\\d{1,2})[.\\/]?(\\d{2,4})?\\.?\\s+(?:u\\s+)?(\\d{1,2}):(\\d{2})/i);
+        const pd=cancellationPending.match(/(?:^|\\b)(\\d{1,2})[.\\/]?(\\d{1,2})[.\\/]?(\\d{2,4})?\\.?\\s+(?:u\\s+)?(\\d{1,2}):(\\d{2})/i);
         if(!pd)return json({reply:"Ne mogu pouzdano prepoznati rezervaciju za otkazivanje. Napišite datum i vrijeme termina."});
         const py=pd[3]?Number(pd[3])<100?2000+Number(pd[3]):Number(pd[3]):cancellationYear;
         const pdate=String(py).padStart(4,"0")+"-"+String(Number(pd[2])).padStart(2,"0")+"-"+String(Number(pd[1])).padStart(2,"0");
@@ -71,7 +71,7 @@ export default {
       const {d,t}=cancellationDateTime(latestCancellation);
       let cDate:string|null=null,cTime:string|null=null;
       if(d){const cy=d[3]?Number(d[3])<100?2000+Number(d[3]):Number(d[3]):cancellationYear;const dt=new Date(cy,Number(d[2])-1,Number(d[1]),12);if(dt.getFullYear()===cy&&dt.getMonth()===Number(d[2])-1&&dt.getDate()===Number(d[1]))cDate=String(cy).padStart(4,"0")+"-"+String(Number(d[2])).padStart(2,"0")+"-"+String(Number(d[1])).padStart(2,"0");}
-      if(t)cTime=String(Number(t[1]||t[3])).padStart(2,"0")+":"+String(Number(t[2]||0)).padStart(2,"0");
+      if(t)cTime=String(Number(t[1]||t[3]||t[4])).padStart(2,"0")+":"+String(Number(t[2]||0)).padStart(2,"0");
       if(!cDate||!cTime){
         return json({reply:"Pronaći ću vašu postojeću rezervaciju. 😊 Ako imate više termina, napišite datum i vrijeme koji želite otkazati (npr. 14.12.2026. u 10:00)."});
       }
