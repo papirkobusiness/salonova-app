@@ -237,7 +237,13 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
     const textualDate=textualDates[textualDates.length-1]||null;
     const now=new Date();
     const currentYear=Number(new Intl.DateTimeFormat("en",{timeZone:context.timezone||"Europe/Zagreb",year:"numeric"}).format(now));
-    if(numericDate){const y=numericDate[3]?(Number(numericDate[3])<100?2000+Number(numericDate[3]):Number(numericDate[3])):currentYear;const d0=new Date(y,Number(numericDate[2])-1,Number(numericDate[1]),12);const today0=new Date(currentYear,now.getMonth(),now.getDate(),12);dateParts={day:Number(numericDate[1]),month:Number(numericDate[2]),year:(!numericDate[3]&&d0<today0)?currentYear+1:y};}
+    const bareDayOnly=latestUser.trim().match(/^([0-3]?\\d)$/);
+    if(bareDayOnly&&numericDate){
+      const day=Number(bareDayOnly[1]),month=Number(numericDate[2]),year=numericDate[3]?(Number(numericDate[3])<100?2000+Number(numericDate[3]):Number(numericDate[3])):currentYear;
+      const base=new Date(year,month-1,day,12),today=new Date(currentYear,now.getMonth(),now.getDate(),12);
+      dateParts={day,month,year:(!numericDate[3]&&base<today)?currentYear+1:year};
+    }
+    else if(numericDate){const y=numericDate[3]?(Number(numericDate[3])<100?2000+Number(numericDate[3]):Number(numericDate[3])):currentYear;const d0=new Date(y,Number(numericDate[2])-1,Number(numericDate[1]),12);const today0=new Date(currentYear,now.getMonth(),now.getDate(),12);dateParts={day:Number(numericDate[1]),month:Number(numericDate[2]),year:(!numericDate[3]&&d0<today0)?currentYear+1:y};}
     else if(textualDate){const mo=months[textualDate[2]]||months[textualDate[2]+"a"]||months[textualDate[2]+"e"];if(mo){const d0=new Date(currentYear,mo-1,Number(textualDate[1]),12),today0=new Date(currentYear,now.getMonth(),now.getDate(),12);dateParts={day:Number(textualDate[1]),month:mo,year:d0<today0?currentYear+1:currentYear};}}
     const weekdays=["nedjelja","ponedjeljak","utorak","srijeda","cetvrtak","petak","subota"];
     const dayName=normalize(latestUser).match(/\b(nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\b/)?.[1]||null;
@@ -275,7 +281,7 @@ Danas je ${new Intl.DateTimeFormat("hr-HR",{timeZone:context.timezone||"Europe/Z
       else if(dateIsClosed)reply=`${d}. ${m}. ${y}. je ${actual}, a salon taj dan ne radi. 😊 Možete li odabrati drugi datum?`;
       else if(dateIsHoliday)reply=`${d}. ${m}. ${y}. je blagdan, a posebno radno vrijeme salona nije potvrđeno. 😊 Ne bih vam htjela ponuditi termin bez provjere. Želite li odabrati drugi datum?`;
       else if(dayName&&dayName!==actual)reply=`Samo da provjerimo 😊 ${d}. ${m}. ${y}. je ${actual}, a ne ${dayName}. Želite li taj datum?`;
-      else if((/(?:^|\b)[0-3]?\d[.\/-][01]?\d(?:[.\/-]\d{2,4})?(?:\b|$)/.test(latestUser)||/\b[0-3]?\d\s+(?:sijecn|veljac|ozuj|trav|svib|lip|srpn|kolovoz|ruj|listopad|studen|prosin)/i.test(normalize(latestUser)))&&!/(?:\b[01]?\d|2[0-3]):[0-5]\d|\b(?:[01]?\d|2[0-3])\s*(?:h|sati)\b/i.test(latestUser))reply=`Odlično, ${d}. ${m}. ${y}. je ${actual}. Koje vrijeme biste željeli? 😊`;
+      else if((/(?:^|\b)[0-3]?\d[.\/-][01]?\d(?:[.\/-]\d{2,4})?(?:\b|$)/.test(latestUser)||/\b[0-3]?\d\s+(?:sijecn|veljac|ozuj|trav|svib|lip|srpn|kolovoz|ruj|listopad|studen|prosin)/i.test(normalize(latestUser))||/^\\s*[0-3]?\\d\\s*$/.test(latestUser)&&!!numericDate)&&!/(?:\b[01]?\d|2[0-3]):[0-5]\d|\b(?:[01]?\d|2[0-3])\s*(?:h|sati)\b/i.test(latestUser))reply=`Odlično, ${d}. ${m}. ${y}. je ${actual}. Koje vrijeme biste željeli? 😊`;
       else if(/\b(?:to je|je|pada na) (?:nedjelja|ponedjeljak|utorak|srijeda|cetvrtak|petak|subota)\b/i.test(reply))reply=`Odlično 😊 ${d}. ${m}. ${y}. je ${actual}. Želite li taj datum?`;
     }else if(dayName&&!dateParts){
       reply="Možete li mi napisati točan datum (npr. 5.12.)? Tako ćemo izbjeći zabunu oko dana. 😊";
