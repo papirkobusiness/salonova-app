@@ -132,7 +132,7 @@ export default {
       });
       // Read the latest selected date from the whole transcript, including the assistant's date confirmation.
       const dateSources=safeMessages.map((m:any)=>m.content);
-      const datePattern=/(?:^|\\b)([0-3]?\\d)\\s*[.\\/-]\\s*([01]?\\d)(?:\\s*[.\\/-]\\s*(\\d{2,4}))?/g;
+      const datePattern=/(?:^|\b)([0-3]?\d)\s*[.\/-]\s*([01]?\d)(?:\s*[.\/-]\s*(\d{2,4}))?/g;
       const dateCandidates=dateSources.flatMap((t:string)=>Array.from(t.matchAll(datePattern)));
       const dateMatch=dateCandidates[dateCandidates.length-1]||null;
       let fastDate="";
@@ -149,10 +149,10 @@ export default {
         }
       }
       // Use explicit clock times in the assistant's confirmations, otherwise a bare hour from the user.
-      const clockPattern=/\\b([01]?\\d|2[0-3]):([0-5]\\d)\\b|\\b([01]?\\d|2[0-3])\\s*(?:h|sati)\\b/gi;
+      const clockPattern=/\b([01]?\d|2[0-3]):([0-5]\d)\b|\b([01]?\d|2[0-3])\s*(?:h|sati)\b/gi;
       const explicitTimes=dateSources.flatMap((t:string)=>Array.from(t.matchAll(clockPattern)));
       const explicitTime=explicitTimes[explicitTimes.length-1]||null;
-      const bareHours=fastUserTexts.filter((t:string)=>/^\\s*([01]?\\d|2[0-3])\\s*$/.test(t));
+      const bareHours=fastUserTexts.filter((t:string)=>/^\s*([01]?\d|2[0-3])\s*$/.test(t));
       const fastBareHour=bareHours.length?bareHours[bareHours.length-1]:null;
       const fastHour=explicitTime?Number(explicitTime[1]||explicitTime[3]):fastBareHour!==null?Number(fastBareHour.trim()):null;
       const fastMinute=explicitTime?Number(explicitTime[2]||0):0;
